@@ -41,7 +41,7 @@ def get_process_memory_usage(process_name):
 
 
 # Функция возвращает словарь {"имя службы": {                          данных служб.
-#                               "rss": "физическая память",
+#                               "uss": "физическая память",
 #                               "cpu": "нагрузку на цп (cpu)"}, ...}
 def get_data_services():
     # Создание пустого словаря.
@@ -113,4 +113,18 @@ def on_off_services(mod):
         for service_name in dict_services:
             if psutil.win_service_get(service_name).status() == "stopped":
                 start_service(service_name)
+
+
+# Функция возвращает словарь {"имя службы": "статус службы", ...}.
+def get_services_status():
+    # Получение словаря необходимых служб
+    dict_services = get_dict_services()
+
+    list_services = list(psutil.win_service_get(i) for i in dict_services)
+
+    # Перебираем все службы.
+    for service in list_services:
+        dict_services[service.name()] = service.status()
+
+    return dict_services
 

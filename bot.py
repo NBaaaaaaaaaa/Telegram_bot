@@ -29,6 +29,28 @@ def start(message):
     bot.send_message(message.chat.id, "Жми на кнопки", reply_markup=markup)
 
 
+# Функция перезпауска бота.
+@bot.message_handler(commands=['restart'])
+def start(message):
+    # Создание поля для вставки кнопок.
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+
+    # Создание кнопок.
+    data_services = types.KeyboardButton("Данные служб")
+    on_services = types.KeyboardButton("Запустить службы")
+    off_services = types.KeyboardButton("Остановить службы")
+    list_serices = types.KeyboardButton("Список служб")
+
+    # Добавление кнопок.
+    markup.add(data_services)
+    markup.add(on_services)
+    markup.add(off_services)
+    markup.add(list_serices)
+
+    # Вывод сообщения и кнопок.
+    bot.send_message(message.chat.id, "Жми на кнопки", reply_markup=markup)
+
+
 # Функция возвращает список ["имя службы: статус службы", ...].
 def get_list_services():
     services_status = get_services_status()
@@ -123,5 +145,11 @@ def buttons_events(message):
         output_button_service_stat(message)
 
 
-# Постоянная работа бота.
-bot.polling(none_stop=True)
+# Процедура запуска бота.
+def start_bot():
+    # Постоянная работа бота.
+    bot.polling(none_stop=True)
+
+
+if __name__ == "__main__":
+    start_bot()

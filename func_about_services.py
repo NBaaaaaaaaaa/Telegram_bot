@@ -67,52 +67,46 @@ def get_data_services():
     return dict_data_services
 
 
-# Процедура запуска службы.
-def start_service(service_name):
-    pythoncom.CoInitialize()
-    c = wmi.WMI()
-    service = c.Win32_Service(Name=service_name)
-    if len(service) > 0:
-        result = service[0].StartService()
-        if result == (0, ):
-            print("Служба", service_name, "успешно запущена.")
-        else:
-            print("Не удалось запустить службу", service_name, ". Код ошибки:", result)
-    else:
-        print("Служба", service_name, "не найдена.")
-
-
-# Процедура остановки службы.
-def stop_service(service_name):
-    pythoncom.CoInitialize()
-    c = wmi.WMI()
-    service = c.Win32_Service(Name=service_name)
-    if len(service) > 0:
-        result = service[0].StopService()
-        if result == (0, ):
-            print("Служба", service_name, "успешно остановлена.")
-        else:
-            print("Не удалось остановить службу", service_name, ". Код ошибки:", result)
-    else:
-        print("Служба", service_name, "не найдена.")
-
-
 # Процедура запуска и остановки служб.
-def on_off_services(mod):
-    # Получение списка необходимых имен сервисов.
-    dict_services = get_dict_services()
+def on_off_services(mod, service_name=None):
+    pythoncom.CoInitialize()
+    c = wmi.WMI()
+
+    if service_name:
+        dict_services = [service_name]
+    else:
+        # Получение списка необходимых имен сервисов.
+        dict_services = get_dict_services()
 
     # Остановка запущенных служб.
     if mod == "off":
         for service_name in dict_services:
             if psutil.win_service_get(service_name).status() != "stopped":
-                stop_service(service_name)
+                service = c.Win32_Service(Name=service_name)
+
+                if len(service) > 0:
+                    result = service[0].StopService()
+                    if result == (0,):
+                        print("Служба", service_name, "успешно остановлена.")
+                    else:
+                        print("Не удалось остановить службу", service_name, ". Код ошибки:", result)
+                else:
+                    print("Служба", service_name, "не найдена.")
 
     # Запуск остановленных служб.
     elif mod == "on":
         for service_name in dict_services:
             if psutil.win_service_get(service_name).status() == "stopped":
-                start_service(service_name)
+                service = c.Win32_Service(Name=service_name)
+
+                if len(service) > 0:
+                    result = service[0].StartService()
+                    if result == (0,):
+                        print("Служба", service_name, "успешно запущена.")
+                    else:
+                        print("Не удалось запустить службу", service_name, ". Код ошибки:", result)
+                else:
+                    print("Служба", service_name, "не найдена.")
 
 
 # Функция возвращает словарь {"имя службы": "статус службы", ...}.

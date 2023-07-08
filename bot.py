@@ -110,12 +110,12 @@ def callback_query(call):
 
         # Обработка запроса по остановке службы.
         elif call.data.split(":", 1)[0] == "Stop_service":
-            stop_service(call.data.split(":", 1)[1])
+            on_off_services("off", call.data.split(":", 1)[1])
             output_button_service_stat(call.message)
 
         # Обработка запроса по запуску службы.
         elif call.data.split(":", 1)[0] == "Start_service":
-            start_service(call.data.split(":", 1)[1])
+            on_off_services("on", call.data.split(":", 1)[1])
             # Пауза, чтобы служба успела запуститься.
             time.sleep(1)
             output_button_service_stat(call.message)

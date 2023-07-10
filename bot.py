@@ -7,13 +7,39 @@ import time
 bot = telebot.TeleBot(open("TOKEN.txt", "r").read())
 
 
-# Функция добавления id чата в файл.
+# Процедура записи id сообщения в соответствующий файл.
+def writing_message_id(message):
+    with open("all_messages/{chat_id}".format(chat_id=message.chat.id), "a+") as file:
+        file.write(str(message.message_id) + ";")
+
+
+# Процедура удаления переписки с ботом.
+def delete_all_messages(chat_id):
+    with open("all_messages/{chat_id}".format(chat_id=chat_id), "r+") as file:
+        # Получаем список id сообщений в чате.
+        list_messages_id = list(map(int, file.read().split(";")[:-1]))
+        min_id, max_id = min(list_messages_id), max(list_messages_id)
+
+        for message_id in range(min_id, max_id + 3):
+            try:
+                bot.delete_message(chat_id, message_id)
+            except Exception as e:
+                print("Ошибка при удалении сообщения с id: {mes_id}".format(mes_id=message_id))
+
+        # Очищаем файл.
+        open("all_messages/{chat_id}".format(chat_id=chat_id), "w")
+
+
+# Процедура добавления id чата в файл.
 def add_chat_id_db(chat_id):
     chat_id = str(chat_id)
 
     with open("all_chat_id.txt", "r+") as file:
-        if file.read().find(chat_id, 1) == -1:
+        if file.read().find(chat_id) == -1:
+            # Записываем id чата в файл.
             file.write(chat_id + ";")
+            # Создаем файл под запись id сообщений.
+            open("all_messages/{chat_id}".format(chat_id=chat_id), "w")
 
 
 # Функция отправки стартового сообщения.
@@ -37,8 +63,12 @@ def send_start_message(chat_id):
 # Функция начала работы с ботом.
 @bot.message_handler(commands=['start'])
 def start(message):
+    # Записываем id чата в файл.
     add_chat_id_db(message.chat.id)
+    # Выводим стартовове сообщение.
     send_start_message(message.chat.id)
+    # Записываем id сообщения.
+    writing_message_id(message)
 
 
 # Функция отправки сообщений всем пользователям о перезапуске бота.
@@ -75,6 +105,9 @@ def output_button_service_stat(message):
 @bot.callback_query_handler(func=lambda message: True)
 def callback_query(call):
     if call.message:
+        # Записываем id сообщения.
+        writing_message_id(call.message)
+
         # Получаем список служб и их статуса.
         dict_services = get_data_services()
 
@@ -140,8 +173,16 @@ def callback_query(call):
 # Функция, обслуживающая отправленные сообщения.
 @bot.message_handler(content_types=["text"])
 def buttons_events(message):
+    # Записываем id сообщения.
+    writing_message_id(message)
+
+    # Обработка запроса "Мониторинг".
     if message.text == "Мониторинг":
         output_button_service_stat(message)
+
+    # Обработка запроса "Очистить чат".
+    elif message.text == "Очистить чат":
+        delete_all_messages(message.chat.id)
 
     # Обработка запроса "Запустить службы".
     elif message.text == "Запустить службы":

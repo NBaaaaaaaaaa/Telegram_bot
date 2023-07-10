@@ -2,7 +2,7 @@ import psutil
 import win32com
 import wmi
 import pythoncom
-
+import traceback
 
 # Функция возваращает словарь {"имя службы": "испольняющий файл"} записанных в файле.
 def get_dict_services():
@@ -67,7 +67,7 @@ def get_data_services():
     return dict_data_services
 
 
-# Процедура запуска и остановки служб.
+# Функция запуска и остановки служб.
 def on_off_services(mod, service_name=None):
     pythoncom.CoInitialize()
     c = wmi.WMI()
@@ -78,20 +78,24 @@ def on_off_services(mod, service_name=None):
         # Получение списка необходимых имен сервисов.
         dict_services = get_dict_services()
 
+    # Формируем строку для ответа.
+    text = ""
+
     # Остановка запущенных служб.
     if mod == "off":
         for service_name in dict_services:
             if psutil.win_service_get(service_name).status() != "stopped":
                 service = c.Win32_Service(Name=service_name)
 
-                if len(service) > 0:
-                    result = service[0].StopService()
-                    if result == (0,):
-                        print("Служба", service_name, "успешно остановлена.")
-                    else:
-                        print("Не удалось остановить службу", service_name, ". Код ошибки:", result)
+                try:
+                    service[0].StopService()
+
+                except Exception as e:
+                    text += "Служба {name} не остановлена. Ошибка: {error}.\n".format(name=service_name,
+                                                                                      error=traceback.format_exc())
+
                 else:
-                    print("Служба", service_name, "не найдена.")
+                    text += "Служба {name} успешно остановлена.\n".format(name=service_name)
 
     # Запуск остановленных служб.
     elif mod == "on":
@@ -99,14 +103,17 @@ def on_off_services(mod, service_name=None):
             if psutil.win_service_get(service_name).status() == "stopped":
                 service = c.Win32_Service(Name=service_name)
 
-                if len(service) > 0:
-                    result = service[0].StartService()
-                    if result == (0,):
-                        print("Служба", service_name, "успешно запущена.")
-                    else:
-                        print("Не удалось запустить службу", service_name, ". Код ошибки:", result)
+                try:
+                    service[0].StartService()
+
+                except Exception as e:
+                    text += "Служба {name} не запущена. Ошибка: {error}.\n".format(name=service_name,
+                                                                                   error=traceback.format_exc())
+
                 else:
-                    print("Служба", service_name, "не найдена.")
+                    text += "Служба {name} успешно запущена.\n".format(name=service_name)
+
+    return text
 
 
 # Функция возвращает словарь {"имя службы": "статус службы", ...}.

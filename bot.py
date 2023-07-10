@@ -110,12 +110,14 @@ def callback_query(call):
 
         # Обработка запроса по остановке службы.
         elif call.data.split(":", 1)[0] == "Stop_service":
-            on_off_services("off", call.data.split(":", 1)[1])
+            result = on_off_services("off", call.data.split(":", 1)[1])
+            bot.send_message(call.message.chat.id, result)
             output_button_service_stat(call.message)
 
         # Обработка запроса по запуску службы.
         elif call.data.split(":", 1)[0] == "Start_service":
-            on_off_services("on", call.data.split(":", 1)[1])
+            result = on_off_services("on", call.data.split(":", 1)[1])
+            bot.send_message(call.message.chat.id, result)
             # Пауза, чтобы служба успела запуститься.
             time.sleep(1)
             output_button_service_stat(call.message)
@@ -172,13 +174,13 @@ def buttons_events(message):
 
     # Обработка запроса "Запустить службы".
     elif message.text == "Запустить службы":
-        on_off_services("on")
-        bot.send_message(message.chat.id, "on")
+        result = on_off_services("on")
+        bot.send_message(message.chat.id, result)
 
     # Обработка запроса "Остановить службы".
     elif message.text == "Остановить службы":
-        on_off_services("off")
-        bot.send_message(message.chat.id, "off")
+        result = on_off_services("off")
+        bot.send_message(message.chat.id, result)
 
     # Обработка запроса "Перезапустить бота".
     elif message.text == "Перезапустить бота":

@@ -128,14 +128,16 @@ def callback_query(call):
                 text = "Остановить сервис {name}?".format(name=service_name)
                 # Добавление кнопки для остановки службы.
                 markup.add(types.InlineKeyboardButton("Остановить",
-                                                      callback_data="Stop_service:{name}".format(name=service_name)))
+                                                      callback_data="Stop_service:{name}:{mes_id}".
+                                                      format(name=service_name, mes_id=call.message.message_id)))
 
             # Запуск службы.
             else:
                 text = "Запустить сервис {name}?".format(name=service_name)
                 # Добавление кнопки для запуска службы.
                 markup.add(types.InlineKeyboardButton("Запустить",
-                                                      callback_data="Start_service:{name}".format(name=service_name)))
+                                                      callback_data="Start_service:{name}:{mes_id}".
+                                                      format(name=service_name, mes_id=call.message.message_id)))
 
             # Добавление кнопки для возврата назад.
             markup.add(types.InlineKeyboardButton("Назад", callback_data="Back"))
@@ -144,14 +146,24 @@ def callback_query(call):
             bot.send_message(call.message.chat.id, text, reply_markup=markup)
 
         # Обработка запроса по остановке службы.
-        elif call.data.split(":", 1)[0] == "Stop_service":
-            result = on_off_services("off", call.data.split(":", 1)[1])
+        elif call.data.split(":", 2)[0] == "Stop_service":
+            result = on_off_services("off", call.data.split(":", 2)[1])
+
+            # Удаляем 2 пердыдущих сообщения.
+            bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+
             bot.send_message(call.message.chat.id, result)
             output_button_service_stat(call.message)
 
         # Обработка запроса по запуску службы.
-        elif call.data.split(":", 1)[0] == "Start_service":
-            result = on_off_services("on", call.data.split(":", 1)[1])
+        elif call.data.split(":", 2)[0] == "Start_service":
+            result = on_off_services("on", call.data.split(":", 2)[1])
+
+            # Удаляем 2 пердыдущих сообщения.
+            bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+
             bot.send_message(call.message.chat.id, result)
             # Пауза, чтобы служба успела запуститься.
             time.sleep(1)

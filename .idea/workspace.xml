@@ -5,7 +5,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/TOKEN.txt" afterPath="$PROJECT_DIR$/TOKEN.txt" />
       <change beforePath="$PROJECT_DIR$/bot.py" afterPath="$PROJECT_DIR$/bot.py" />
-      <change beforePath="$PROJECT_DIR$/func_about_services.py" afterPath="$PROJECT_DIR$/func_about_services.py" />
       <change beforePath="$PROJECT_DIR$/list_of_services.txt" afterPath="$PROJECT_DIR$/list_of_services.txt" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -17,14 +16,24 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="bot.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="bot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/bot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="357">
-              <caret line="49" column="50" lean-forward="true" selection-start-line="49" selection-start-column="50" selection-end-line="49" selection-end-column="50" />
+            <state relative-caret-position="392">
+              <caret line="155" column="58" lean-forward="true" selection-start-line="155" selection-start-column="58" selection-end-line="155" selection-end-column="58" />
               <folding>
                 <element signature="e#0#14#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="all_chat_id.txt" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/all_chat_id.txt">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="10" lean-forward="false" selection-start-line="0" selection-start-column="10" selection-end-line="0" selection-end-column="10" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -41,11 +50,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="launching_the_program.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="launching_the_program.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/launching_the_program.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="21" column="30" lean-forward="true" selection-start-line="21" selection-start-column="30" selection-end-line="21" selection-end-column="30" />
+            <state relative-caret-position="153">
+              <caret line="9" column="25" lean-forward="false" selection-start-line="9" selection-start-column="25" selection-end-line="9" selection-end-column="25" />
               <folding>
                 <element signature="e#0#16#0" expanded="true" />
               </folding>
@@ -93,8 +102,8 @@
         <option value="$PROJECT_DIR$/all_messages/807994112" />
         <option value="$PROJECT_DIR$/aaa.py" />
         <option value="$PROJECT_DIR$/func_about_services.py" />
-        <option value="$PROJECT_DIR$/bot.py" />
         <option value="$PROJECT_DIR$/all_chat_id.txt" />
+        <option value="$PROJECT_DIR$/bot.py" />
       </list>
     </option>
   </component>
@@ -126,6 +135,11 @@
               <item name="negr" type="b2602c69:ProjectViewProjectNode" />
               <item name="negr" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="negr" type="b2602c69:ProjectViewProjectNode" />
+              <item name="negr" type="462c0819:PsiDirectoryNode" />
+              <item name="all_messages" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -149,7 +163,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.launching_the_program">
+  <component name="RunManager" selected="Python.bot">
     <configuration name="ASDF" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -249,8 +263,8 @@
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.launching_the_program" />
-        <item index="1" class="java.lang.String" itemvalue="Python.bot" />
+        <item index="0" class="java.lang.String" itemvalue="Python.bot" />
+        <item index="1" class="java.lang.String" itemvalue="Python.launching_the_program" />
         <item index="2" class="java.lang.String" itemvalue="Python.aaa" />
         <item index="3" class="java.lang.String" itemvalue="Python.func_about_services" />
         <item index="4" class="java.lang.String" itemvalue="Python.ASDF" />
@@ -638,26 +652,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/all_messages/776891527">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/aaa.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="34">
           <caret line="2" column="10" lean-forward="true" selection-start-line="2" selection-start-column="10" selection-end-line="2" selection-end-column="53" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/all_messages/807994112">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -680,30 +678,46 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bot.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="357">
-          <caret line="49" column="50" lean-forward="true" selection-start-line="49" selection-start-column="50" selection-end-line="49" selection-end-column="50" />
-          <folding>
-            <element signature="e#0#14#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/all_chat_id.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
-          <caret line="0" column="14" lean-forward="false" selection-start-line="0" selection-start-column="14" selection-end-line="0" selection-end-column="14" />
+          <caret line="0" column="10" lean-forward="false" selection-start-line="0" selection-start-column="10" selection-end-line="0" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/all_messages/776891527">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/all_messages/807994112">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/launching_the_program.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="21" column="30" lean-forward="true" selection-start-line="21" selection-start-column="30" selection-end-line="21" selection-end-column="30" />
+        <state relative-caret-position="153">
+          <caret line="9" column="25" lean-forward="false" selection-start-line="9" selection-start-column="25" selection-end-line="9" selection-end-column="25" />
           <folding>
             <element signature="e#0#16#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/bot.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="392">
+          <caret line="155" column="58" lean-forward="true" selection-start-line="155" selection-start-column="58" selection-end-line="155" selection-end-column="58" />
+          <folding>
+            <element signature="e#0#14#0" expanded="true" />
           </folding>
         </state>
       </provider>

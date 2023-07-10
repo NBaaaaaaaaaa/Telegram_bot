@@ -50,28 +50,25 @@ def send_message_after_restart():
             send_start_message(chat_id)
 
 
-# Функция возвращает список ["имя службы: статус службы", ...].
-def get_list_services():
-    services_status = get_services_status()
-    return list(": ".join([service, services_status[service]]) for service in sorted(services_status.keys()))
-
-
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
 def get_status():
     global status
     return status
 
 
-# Функция вывода запущенных служб в формате кнопок.
+# Функция вывода служб в формате кнопок.
 def output_button_service_stat(message):
-    list_services = get_list_services()
+    dict_services = get_data_services()
 
     markup = types.InlineKeyboardMarkup(row_width=1)
     # Заполяем поле кнопками.
-    for service in list_services:
-        markup.add(types.InlineKeyboardButton(service, callback_data=service))
+    for service in sorted(dict_services.keys()):
+        text = "; ".join(
+            [service, dict_services[service]["uss"],
+             dict_services[service]["status"]])  # , dict_services[service]["cpu"]
+        markup.add(types.InlineKeyboardButton(text, callback_data=service))
 
-    bot.send_message(message.chat.id, "Список служб:", reply_markup=markup)
+    bot.send_message(message.chat.id, "Мониторинг:", reply_markup=markup)
 
 
 # Функция обработки нажажатия кнопок со встроенной клавиатуры.
@@ -79,12 +76,12 @@ def output_button_service_stat(message):
 def callback_query(call):
     if call.message:
         # Получаем список служб и их статуса.
-        list_call_data = get_list_services()
+        dict_services = get_data_services()
 
-        if call.data in list_call_data:
+        if call.data in dict_services:
             markup = types.InlineKeyboardMarkup(row_width=1)
 
-            service_name, service_status = call.data.replace(" ", "").split(":")
+            service_name, service_status = call.data, dict_services[call.data]["status"]
 
             # Формируем строку для ответа.
             text = ""
@@ -139,38 +136,12 @@ def callback_query(call):
             # Завершаем процесс опроса Telegram серверов на предмет новых сообщений.
             bot.stop_polling()
 
-        # Обработка запроса "Данные служб".
-        elif call.data == "List data services":
-            # Получаем словарь данных служб.
-            dict_services = get_data_services()
-
-            # Формируем строку для ответа.
-            all_data = ""
-            if len(dict_services) != 0:
-                for service in sorted(dict_services.keys()):
-                    string_to_send = "; ".join(
-                        [service, dict_services[service]["uss"]])  # , dict_services[service]["cpu"]
-                    all_data += string_to_send + "\n"
-            else:
-                all_data = "Сервисы не запущенны"
-
-            bot.send_message(call.message.chat.id, all_data)
-
-        # Обработка запроса "Список служб".
-        elif call.data == "List services":
-            output_button_service_stat(call.message)
-
 
 # Функция, обслуживающая отправленные сообщения.
 @bot.message_handler(content_types=["text"])
 def buttons_events(message):
     if message.text == "Мониторинг":
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        markup.add(
-            types.InlineKeyboardButton("Данные служб", callback_data="List data services"),
-            types.InlineKeyboardButton("Список служб", callback_data="List services")
-        )
-        bot.send_message(message.chat.id, "Мониторинг", reply_markup=markup)
+        output_button_service_stat(message)
 
     # Обработка запроса "Запустить службы".
     elif message.text == "Запустить службы":

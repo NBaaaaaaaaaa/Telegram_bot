@@ -4,6 +4,7 @@ import wmi
 import pythoncom
 import traceback
 
+
 # Функция возваращает словарь {"имя службы": "испольняющий файл"} записанных в файле.
 def get_dict_services():
     with open("list_of_services.txt", "r") as file:
@@ -42,7 +43,8 @@ def get_process_memory_usage(process_name):
 
 # Функция возвращает словарь {"имя службы": {                          данных служб.
 #                               "uss": "физическая память",
-#                               "cpu": "нагрузку на цп (cpu)"}, ...}
+#                               "cpu": "нагрузку на цп (cpu)"},
+#                               "status": "статус службы", ...}
 def get_data_services():
     # Создание пустого словаря.
     dict_data_services = dict()
@@ -53,15 +55,12 @@ def get_data_services():
 
     # Перебираем все службы.
     for service in list_services:
-        # Ищем запущенные процессы.
-        process = psutil.Process(pid=service.pid())
-
-        if process.status() == "running":
-            # Добавляем в словарь данные запущенного процесса.
-            dict_data_services[service.name()] = {
-                "uss": str(get_process_memory_usage(dict_services[service.name()])) + " Мб",
-                "cpu": None
-            }
+        # Добавляем в словарь данные процесса.
+        dict_data_services[service.name()] = {
+            "uss": str(get_process_memory_usage(dict_services[service.name()])) + " Мб",
+            "cpu": None,
+            "status": service.status()
+        }
 
     # Возвращаем словарь данных  служб.
     return dict_data_services
@@ -116,16 +115,16 @@ def on_off_services(mod, service_name=None):
     return text
 
 
-# Функция возвращает словарь {"имя службы": "статус службы", ...}.
-def get_services_status():
-    # Получение словаря необходимых служб
-    dict_services = get_dict_services()
-
-    list_services = list(psutil.win_service_get(i) for i in dict_services)
-
-    # Перебираем все службы.
-    for service in list_services:
-        dict_services[service.name()] = service.status()
-
-    return dict_services
+# # Функция возвращает словарь {"имя службы": "статус службы", ...}.
+# def get_services_status():
+#     # Получение словаря необходимых служб
+#     dict_services = get_dict_services()
+#
+#     list_services = list(psutil.win_service_get(i) for i in dict_services)
+#
+#     # Перебираем все службы.
+#     for service in list_services:
+#         dict_services[service.name()] = service.status()
+#
+#     return dict_services
 

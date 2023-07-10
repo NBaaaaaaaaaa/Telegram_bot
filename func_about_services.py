@@ -71,6 +71,16 @@ def on_off_services(mod, service_name=None):
     pythoncom.CoInitialize()
     c = wmi.WMI()
 
+    dict_phrases = {"off":
+                        {"status": ["paused", "running"],
+                         "error_text": "Служба {name} не остановлена. Ошибка: {error}.\n",
+                         "success_text": "Служба {name} успешно остановлена.\n"},
+                    "on":
+                        {"status": ["stopped"],
+                         "error_text": "Служба {name} не запущена. Ошибка: {error}.\n",
+                         "success_text": "Служба {name} успешно запущена.\n"}
+                    }
+
     if service_name:
         dict_services = [service_name]
     else:
@@ -80,51 +90,22 @@ def on_off_services(mod, service_name=None):
     # Формируем строку для ответа.
     text = ""
 
-    # Остановка запущенных служб.
-    if mod == "off":
-        for service_name in dict_services:
-            if psutil.win_service_get(service_name).status() != "stopped":
-                service = c.Win32_Service(Name=service_name)
+    for service_name in dict_services:
+        if psutil.win_service_get(service_name).status() in dict_phrases[mod]["status"]:
+            service = c.Win32_Service(Name=service_name)
 
-                try:
+            try:
+                if mod == "off":
                     service[0].StopService()
-
-                except Exception as e:
-                    text += "Служба {name} не остановлена. Ошибка: {error}.\n".format(name=service_name,
-                                                                                      error=traceback.format_exc())
-
-                else:
-                    text += "Служба {name} успешно остановлена.\n".format(name=service_name)
-
-    # Запуск остановленных служб.
-    elif mod == "on":
-        for service_name in dict_services:
-            if psutil.win_service_get(service_name).status() == "stopped":
-                service = c.Win32_Service(Name=service_name)
-
-                try:
+                elif mod == "on":
                     service[0].StartService()
 
-                except Exception as e:
-                    text += "Служба {name} не запущена. Ошибка: {error}.\n".format(name=service_name,
-                                                                                   error=traceback.format_exc())
+            except Exception as e:
+                text += dict_phrases[mod]["error_text"].format(name=service_name, error=traceback.format_exc())
 
-                else:
-                    text += "Служба {name} успешно запущена.\n".format(name=service_name)
+            else:
+                text += dict_phrases[mod]["success_text"].format(name=service_name)
 
     return text
 
-
-# # Функция возвращает словарь {"имя службы": "статус службы", ...}.
-# def get_services_status():
-#     # Получение словаря необходимых служб
-#     dict_services = get_dict_services()
-#
-#     list_services = list(psutil.win_service_get(i) for i in dict_services)
-#
-#     # Перебираем все службы.
-#     for service in list_services:
-#         dict_services[service.name()] = service.status()
-#
-#     return dict_services
 

@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0e36c330-b4b6-45cf-9e7c-4616a7f0476a" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/TOKEN.txt" afterPath="$PROJECT_DIR$/TOKEN.txt" />
-      <change beforePath="$PROJECT_DIR$/bot.py" afterPath="$PROJECT_DIR$/bot.py" />
       <change beforePath="$PROJECT_DIR$/func_about_services.py" afterPath="$PROJECT_DIR$/func_about_services.py" />
       <change beforePath="$PROJECT_DIR$/list_of_services.txt" afterPath="$PROJECT_DIR$/list_of_services.txt" />
     </list>
@@ -19,8 +19,8 @@
       <file leaf-file-name="bot.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/bot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2380">
-              <caret line="140" column="44" lean-forward="true" selection-start-line="140" selection-start-column="44" selection-end-line="140" selection-end-column="44" />
+            <state relative-caret-position="2499">
+              <caret line="147" column="38" lean-forward="true" selection-start-line="147" selection-start-column="38" selection-end-line="147" selection-end-column="38" />
               <folding>
                 <element signature="e#0#14#0" expanded="true" />
               </folding>
@@ -31,21 +31,11 @@
       <file leaf-file-name="func_about_services.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/func_about_services.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-357">
-              <caret line="57" column="0" lean-forward="false" selection-start-line="57" selection-start-column="0" selection-end-line="57" selection-end-column="0" />
+            <state relative-caret-position="227">
+              <caret line="93" column="16" lean-forward="false" selection-start-line="93" selection-start-column="16" selection-end-line="93" selection-end-column="16" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ASDF.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ASDF.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="51">
-              <caret line="3" column="8" lean-forward="false" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -78,6 +68,7 @@
       <find>glob</find>
       <find>a+</find>
       <find>on_of</find>
+      <find>time</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -315,7 +306,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="1" />
+      <option name="time" value="2" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -702,8 +693,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/bot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2380">
-          <caret line="140" column="44" lean-forward="true" selection-start-line="140" selection-start-column="44" selection-end-line="140" selection-end-column="44" />
+        <state relative-caret-position="2499">
+          <caret line="147" column="38" lean-forward="true" selection-start-line="147" selection-start-column="38" selection-end-line="147" selection-end-column="38" />
           <folding>
             <element signature="e#0#14#0" expanded="true" />
           </folding>
@@ -712,8 +703,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/func_about_services.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-357">
-          <caret line="57" column="0" lean-forward="false" selection-start-line="57" selection-start-column="0" selection-end-line="57" selection-end-column="0" />
+        <state relative-caret-position="227">
+          <caret line="93" column="16" lean-forward="false" selection-start-line="93" selection-start-column="16" selection-end-line="93" selection-end-column="16" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
           </folding>

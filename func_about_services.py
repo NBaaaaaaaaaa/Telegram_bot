@@ -74,11 +74,13 @@ def on_off_services(mod, service_name=None):
     dict_phrases = {"off":
                         {"status": ["paused", "running"],
                          "error_text": "Служба {name} не остановлена. Ошибка: {error}.\n",
-                         "success_text": "Служба {name} успешно остановлена.\n"},
+                         "success_text": "Служба {name} успешно остановлена.\n",
+                         "text": "Службы уже остановлены."},
                     "on":
                         {"status": ["stopped"],
                          "error_text": "Служба {name} не запущена. Ошибка: {error}.\n",
-                         "success_text": "Служба {name} успешно запущена.\n"}
+                         "success_text": "Служба {name} успешно запущена.\n",
+                         "text": "Службы уже запущены."}
                     }
 
     if service_name:

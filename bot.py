@@ -43,7 +43,13 @@ def add_chat_id_db(chat_id):
 
 
 # Функция отправки стартового сообщения.
-def send_start_message(chat_id):
+def send_start_message(mod, chat_id):
+    dict_text = {"start": "Привет.\n" +
+                          "Бот позволяет мониторить, зпускать и останавливать сервисы на сервере.\n" +
+                          "Для управления используй кнопки.",
+                 "restart": "Бот перезапущен.\n" +
+                            "Для управления используй кнопки."}
+
     # Создание поля для вставки кнопок.
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
@@ -57,7 +63,7 @@ def send_start_message(chat_id):
     )
 
     # Вывод сообщения и кнопок.
-    bot.send_message(chat_id, "Жми на кнопки", reply_markup=markup)
+    bot.send_message(chat_id, dict_text[mod], reply_markup=markup)
 
 
 # Функция начала работы с ботом.
@@ -66,7 +72,7 @@ def start(message):
     # Записываем id чата в файл.
     add_chat_id_db(message.chat.id)
     # Выводим стартовове сообщение.
-    send_start_message(message.chat.id)
+    send_start_message("start", message.chat.id)
     # Записываем id сообщения.
     writing_message_id(message)
 
@@ -76,8 +82,7 @@ def send_message_after_restart():
     with open("all_chat_id.txt", "r+") as file:
         list_chat_id = list(map(int, file.read().split(";")[:-1]))
         for chat_id in list_chat_id:
-            bot.send_message(chat_id, "Бот запущен")
-            send_start_message(chat_id)
+            send_start_message("restart", chat_id)
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.

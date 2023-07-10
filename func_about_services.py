@@ -108,6 +108,9 @@ def on_off_services(mod, service_name=None):
             else:
                 text += dict_phrases[mod]["success_text"].format(name=service_name)
 
+    if text == "":
+        text = dict_phrases[mod]["text"]
+
     return text
 
 

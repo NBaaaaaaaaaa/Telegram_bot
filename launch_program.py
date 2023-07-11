@@ -1,5 +1,5 @@
 import threading
-from bot import start_bot, get_status, send_message_after_restart
+from monitoring_bot import start_bot, get_status, send_message_after_restart
 
 
 def worker():

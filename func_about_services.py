@@ -5,15 +5,14 @@ import pythoncom
 import traceback
 
 
-# Функция возваращает словарь {"имя службы": "испольняющий файл"} записанных в файле.
-def get_dict_services():
+# Функция возваращает список имен служб записанных в файле.
+def get_list_services():
     with open("list_of_services.txt", "r") as file:
-        dict_services = dict()
-        for line in file.readlines():
-            service_name, exe_name = line.replace("\n", "").split("/", 1)
-            dict_services[service_name] = exe_name
+        list_services = list()
+        for service_name in file.readlines():
+            list_services.append(service_name.replace("\n", ""))
 
-        return dict_services
+        return list_services
 
 
 # Функция возвращает кол-во памяти (Мб), которое освободится после остановки службы.
@@ -48,16 +47,14 @@ def get_process_memory_usage(process_name):
 def get_data_services():
     # Создание пустого словаря.
     dict_data_services = dict()
-    # Получение словаря необходимых служб
-    dict_services = get_dict_services()
 
-    list_services = list(psutil.win_service_get(i) for i in dict_services)
+    list_services = list(psutil.win_service_get(i) for i in get_list_services())
 
     # Перебираем все службы.
     for service in list_services:
         # Добавляем в словарь данные процесса.
         dict_data_services[service.name()] = {
-            "uss": str(get_process_memory_usage(dict_services[service.name()])) + " Мб",
+            "uss": str(get_process_memory_usage(service.binpath().split("\\")[-1])) + " Мб",
             "cpu": None,
             "status": service.status()
         }
@@ -73,26 +70,26 @@ def on_off_services(mod, service_name=None):
 
     dict_phrases = {"off":
                         {"status": ["paused", "running"],
-                         "error_text": "Служба {name} не остановлена. Ошибка: {error}.",
-                         "success_text": "Служба {name} успешно остановлена.",
+                         "error_text": "Служба {name} не остановлена. Ошибка: {error}.\n",
+                         "success_text": "Служба {name} успешно остановлена.\n",
                          "text": "Службы уже остановлены."},
                     "on":
                         {"status": ["stopped"],
-                         "error_text": "Служба {name} не запущена. Ошибка: {error}.",
-                         "success_text": "Служба {name} успешно запущена.",
+                         "error_text": "Служба {name} не запущена. Ошибка: {error}.\n",
+                         "success_text": "Служба {name} успешно запущена.\n",
                          "text": "Службы уже запущены."}
                     }
 
     if service_name:
-        dict_services = [service_name]
+        list_services = [service_name]
     else:
         # Получение списка необходимых имен сервисов.
-        dict_services = get_dict_services()
+        list_services = get_list_services()
 
     # Формируем строку для ответа.
     text = ""
 
-    for service_name in dict_services:
+    for service_name in list_services:
         if psutil.win_service_get(service_name).status() in dict_phrases[mod]["status"]:
             service = c.Win32_Service(Name=service_name)
 

@@ -31,24 +31,55 @@ def delete_all_messages(chat_id):
         open("all_messages/{chat_id}".format(chat_id=chat_id), "w")
 
 
+# Функция возвращает список ["имя пользователя", "id чата"].
+def split_username_id(string):
+    list_string = list(string)
+    for ind in range(len(list_string) - 1, -1, -1):
+        if list_string[ind] == ";":
+            username = "".join(list_string[:ind])
+            chat_id = "".join(list_string[ind + 1:])
+            return [username, chat_id]
+
+
+# Функция возвращает словарь {"имя пользователя": "id чата", ...}.
+def get_dict_username_id():
+    with open("users/users_db.txt", "r") as file:
+        return dict(split_username_id(string.replace("\n", "")) for string in file.readlines())
+
+
+# Процедура перезаписи файла, если место id чата было пустое.
+def rewrite_db_file(dict_file):
+    with open("users/users_db.txt", "w") as file:
+        for username in dict_file:
+            file.write("{n};{i}\n".format(n=username, i=dict_file[username]))
+
+
 # Процедура добавления id чата в файл.
-def add_chat_id_db(chat_id):
-    chat_id = str(chat_id)
+def add_chat_id_db(message):
+    # Получаем словарь {"имя пользователя": "id чата", ...}.
+    dict_file = get_dict_username_id()
 
-    with open("all_chat_id.txt", "r+") as file:
-        if file.read().find(chat_id) == -1:
-            # Записываем id чата в файл.
-            file.write(chat_id + ";")
+    # Добавляем id чата в словарь, если поле пустое.
+    if message.from_user.username in dict_file:
+        if dict_file[message.from_user.username] == "":
+            dict_file[message.from_user.username] = message.chat.id
             # Создаем файл под запись id сообщений.
-            open("all_messages/{chat_id}".format(chat_id=chat_id), "w").close()
+            open("all_messages/{chat_id}".format(chat_id=message.chat.id), "w").close()
+            # Перезаписываем бд.
+            rewrite_db_file(dict_file)
 
 
-# Процедура записи никнейма пользователя в файл.
-def add_username_db(username):
-    with open("users/users_db.txt", "r+") as file:
-        if file.read().find(username) == -1:
-            # Записываем id чата в файл.
-            file.write(username + ";")
+# Функция возвращает имя пользователя по id чата.
+def get_username(chat_id):
+    # Получаем словарь {"имя пользователя": "id чата", ...}.
+    dict_file = get_dict_username_id()
+
+    for username in dict_file:
+        try:
+            if int(dict_file[username]) == chat_id:
+                return username
+        except ValueError:
+            print("{n} не имеет id чата.".format(n=username))
 
 
 # Процедура логирования.
@@ -82,7 +113,8 @@ def logging(username, text):
 
     # Запись в файл.
     with open(path + log_file, "a", encoding="utf-8") as file:
-        file.write("{date} | {name} | {text}\n".format(date=current_datetime, name=username, text=text))
+        file.write("{date} | {name} | {text}\n".format(date=current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                                                       name=username, text=text))
 
 
 # Функция отправки стартового сообщения.
@@ -112,27 +144,29 @@ def send_start_message(mod, chat_id):
     bot.send_message(chat_id, dict_text[mod], reply_markup=markup)
 
 
+# Функция отправки сообщений всем пользователям о перезапуске бота.
+def send_message_after_restart():
+    # Получаем словарь {"имя пользователя": "id чата", ...}.
+    dict_file = get_dict_username_id()
+
+    for username in dict_file:
+        try:
+            send_start_message("restart", int(dict_file[username]))
+        except ValueError:
+            print("{n} не получил сообщение о рестарте, так как не имеет id чата.".format(n=username))
+
+
 # Функция начала работы с ботом.
 @bot.message_handler(commands=['start'])
 def start(message):
     # Логирование.
     logging(message.from_user.username, message.text)
     # Записываем id чата в файл.
-    add_chat_id_db(message.chat.id)
-    # Записываем ние пользователя в файл.
-    add_username_db(message.from_user.username)
+    add_chat_id_db(message)
     # Выводим стартовове сообщение.
     send_start_message("start", message.chat.id)
     # Записываем id сообщения.
     writing_message_id(message)
-
-
-# Функция отправки сообщений всем пользователям о перезапуске бота.
-def send_message_after_restart():
-    with open("all_chat_id.txt", "r+") as file:
-        list_chat_id = list(map(int, file.read().split(";")[:-1]))
-        for chat_id in list_chat_id:
-            send_start_message("restart", chat_id)
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
@@ -209,9 +243,6 @@ def callback_query(call):
 
         # Обработка запроса по остановке службы.
         elif call.data.split(":", 2)[0] == "Stop_service":
-            # Логирование.
-            logging(call.message.from_user.username, call.message.text)
-
             result = on_off_services("off", call.data.split(":", 2)[1])
 
             # Удаляем 2 пердыдущих сообщения.
@@ -219,16 +250,14 @@ def callback_query(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
 
             # Логирование.
-            logging("dhadhfabot", result)
+            logging(get_username(call.message.chat.id), "Остановить")
+            logging("dhadhfabot", result.replace("\n", " "))
 
             bot.send_message(call.message.chat.id, result)
             output_button_service_stat(call.message)
 
         # Обработка запроса по запуску службы.
         elif call.data.split(":", 2)[0] == "Start_service":
-            # Логирование.
-            logging(call.message.from_user.username, call.message.text)
-
             result = on_off_services("on", call.data.split(":", 2)[1])
 
             # Удаляем 2 пердыдущих сообщения.
@@ -236,7 +265,8 @@ def callback_query(call):
             bot.delete_message(call.message.chat.id, call.message.message_id)
 
             # Логирование.
-            logging("dhadhfabot", result)
+            logging(get_username(call.message.chat.id), "Запустить")
+            logging("dhadhfabot", result.replace("\n", " "))
 
             bot.send_message(call.message.chat.id, result)
             # Пауза, чтобы служба успела запуститься.
@@ -245,12 +275,15 @@ def callback_query(call):
 
         # Обработка запроса вернуться назад.
         elif call.data == "Back":
+            # Логирование.
+            logging(get_username(call.message.chat.id), "Назад")
+
             bot.delete_message(call.message.chat.id, call.message.message_id)
 
         # Обработка запроса перезапуска бота.
         elif call.data == "Restart":
             # Логирование.
-            logging(call.message.from_user.username, call.message.text)
+            logging(get_username(call.message.chat.id), "Перезапустить")
 
             global status
             # Меняем значение глобальной переменной на "Restart".
@@ -261,6 +294,9 @@ def callback_query(call):
 
             # Логирование.
             logging("dhadhfabot", "Бот перезапускается ...")
+
+            # Удаление предыдущего сообщения.
+            bot.delete_message(call.message.chat.id, call.message.message_id)
 
             # Отправляем сообщение.
             bot.send_message(call.message.chat.id, "Бот перезапускается ...", reply_markup=no_buttons)

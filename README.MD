@@ -21,7 +21,7 @@
 `pip install -r requirements.txt`.
 
 Файл *requirements.txt*:
-``` python
+```
 certifi==2021.10.8
 chardet==3.0.4
 idna==2.8

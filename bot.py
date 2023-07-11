@@ -82,6 +82,17 @@ def get_username(chat_id):
             print("{n} не имеет id чата.".format(n=username))
 
 
+# Функция возвращает есть ли пользователь в файле или нет.
+def user_in_db(message):
+    # Получаем словарь {"имя пользователя": "id чата", ...}.
+    dict_file = get_dict_username_id()
+
+    if message.chat.id in dict_file.values() or message.from_user.username in dict_file:
+        return True
+
+    return False
+
+
 # Процедура логирования.
 def logging(username, text):
     log_file = "log.{num}.txt"
@@ -159,14 +170,16 @@ def send_message_after_restart():
 # Функция начала работы с ботом.
 @bot.message_handler(commands=['start'])
 def start(message):
-    # Логирование.
-    logging(message.from_user.username, message.text)
-    # Записываем id чата в файл.
-    add_chat_id_db(message)
-    # Выводим стартовове сообщение.
-    send_start_message("start", message.chat.id)
-    # Записываем id сообщения.
-    writing_message_id(message)
+    # Проверка доступа пользователя.
+    if user_in_db(message):
+        # Логирование.
+        logging(message.from_user.username, message.text)
+        # Записываем id чата в файл.
+        add_chat_id_db(message)
+        # Выводим стартовове сообщение.
+        send_start_message("start", message.chat.id)
+        # Записываем id сообщения.
+        writing_message_id(message)
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
@@ -201,155 +214,159 @@ def output_button_service_stat(message):
 @bot.callback_query_handler(func=lambda message: True)
 def callback_query(call):
     if call.message:
-        # Записываем id сообщения.
-        writing_message_id(call.message)
+        # Проверка доступа пользователя.
+        if user_in_db(call.message):
+            # Записываем id сообщения.
+            writing_message_id(call.message)
 
-        # Получаем список служб и их статуса.
-        dict_services = get_data_services()
+            # Получаем список служб и их статуса.
+            dict_services = get_data_services()
 
-        if call.data in dict_services:
-            markup = types.InlineKeyboardMarkup(row_width=1)
+            if call.data in dict_services:
+                markup = types.InlineKeyboardMarkup(row_width=1)
 
-            service_name, service_status = call.data, dict_services[call.data]["status"]
+                service_name, service_status = call.data, dict_services[call.data]["status"]
 
-            # Формируем строку для ответа.
-            text = ""
-            # Остановка службы.
-            if service_status != "stopped":
-                text = "Остановить сервис {name}?".format(name=service_name)
+                # Формируем строку для ответа.
+                text = ""
+                # Остановка службы.
+                if service_status != "stopped":
+                    text = "Остановить сервис {name}?".format(name=service_name)
 
-                # Добавление кнопки для остановки службы.
-                markup.add(types.InlineKeyboardButton("Остановить",
-                                                      callback_data="Stop_service:{name}:{mes_id}".
-                                                      format(name=service_name, mes_id=call.message.message_id)))
+                    # Добавление кнопки для остановки службы.
+                    markup.add(types.InlineKeyboardButton("Остановить",
+                                                          callback_data="Stop_service:{name}:{mes_id}".
+                                                          format(name=service_name, mes_id=call.message.message_id)))
 
-            # Запуск службы.
-            else:
-                text = "Запустить сервис {name}?".format(name=service_name)
+                # Запуск службы.
+                else:
+                    text = "Запустить сервис {name}?".format(name=service_name)
 
-                # Добавление кнопки для запуска службы.
-                markup.add(types.InlineKeyboardButton("Запустить",
-                                                      callback_data="Start_service:{name}:{mes_id}".
-                                                      format(name=service_name, mes_id=call.message.message_id)))
+                    # Добавление кнопки для запуска службы.
+                    markup.add(types.InlineKeyboardButton("Запустить",
+                                                          callback_data="Start_service:{name}:{mes_id}".
+                                                          format(name=service_name, mes_id=call.message.message_id)))
 
-            # Добавление кнопки для возврата назад.
-            markup.add(types.InlineKeyboardButton("Назад", callback_data="Back"))
+                # Добавление кнопки для возврата назад.
+                markup.add(types.InlineKeyboardButton("Назад", callback_data="Back"))
 
-            # Логирование.
-            logging("dhadhfabot", text)
+                # Логирование.
+                logging("dhadhfabot", text)
 
-            # Вывод сообщения с кнопками.
-            bot.send_message(call.message.chat.id, text, reply_markup=markup)
+                # Вывод сообщения с кнопками.
+                bot.send_message(call.message.chat.id, text, reply_markup=markup)
 
-        # Обработка запроса по остановке службы.
-        elif call.data.split(":", 2)[0] == "Stop_service":
-            result = on_off_services("off", call.data.split(":", 2)[1])
+            # Обработка запроса по остановке службы.
+            elif call.data.split(":", 2)[0] == "Stop_service":
+                result = on_off_services("off", call.data.split(":", 2)[1])
 
-            # Удаляем 2 пердыдущих сообщения.
-            bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+                # Удаляем 2 пердыдущих сообщения.
+                bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+                bot.delete_message(call.message.chat.id, call.message.message_id)
 
-            # Логирование.
-            logging(get_username(call.message.chat.id), "Остановить")
-            logging("dhadhfabot", result.replace("\n", " "))
+                # Логирование.
+                logging(get_username(call.message.chat.id), "Остановить")
+                logging("dhadhfabot", result.replace("\n", " "))
 
-            bot.send_message(call.message.chat.id, result)
-            output_button_service_stat(call.message)
+                bot.send_message(call.message.chat.id, result)
+                output_button_service_stat(call.message)
 
-        # Обработка запроса по запуску службы.
-        elif call.data.split(":", 2)[0] == "Start_service":
-            result = on_off_services("on", call.data.split(":", 2)[1])
+            # Обработка запроса по запуску службы.
+            elif call.data.split(":", 2)[0] == "Start_service":
+                result = on_off_services("on", call.data.split(":", 2)[1])
 
-            # Удаляем 2 пердыдущих сообщения.
-            bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+                # Удаляем 2 пердыдущих сообщения.
+                bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+                bot.delete_message(call.message.chat.id, call.message.message_id)
 
-            # Логирование.
-            logging(get_username(call.message.chat.id), "Запустить")
-            logging("dhadhfabot", result.replace("\n", " "))
+                # Логирование.
+                logging(get_username(call.message.chat.id), "Запустить")
+                logging("dhadhfabot", result.replace("\n", " "))
 
-            bot.send_message(call.message.chat.id, result)
-            # Пауза, чтобы служба успела запуститься.
-            time.sleep(1)
-            output_button_service_stat(call.message)
+                bot.send_message(call.message.chat.id, result)
+                # Пауза, чтобы служба успела запуститься.
+                time.sleep(1)
+                output_button_service_stat(call.message)
 
-        # Обработка запроса вернуться назад.
-        elif call.data == "Back":
-            # Логирование.
-            logging(get_username(call.message.chat.id), "Назад")
+            # Обработка запроса вернуться назад.
+            elif call.data == "Back":
+                # Логирование.
+                logging(get_username(call.message.chat.id), "Назад")
 
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+                bot.delete_message(call.message.chat.id, call.message.message_id)
 
-        # Обработка запроса перезапуска бота.
-        elif call.data == "Restart":
-            # Логирование.
-            logging(get_username(call.message.chat.id), "Перезапустить")
+            # Обработка запроса перезапуска бота.
+            elif call.data == "Restart":
+                # Логирование.
+                logging(get_username(call.message.chat.id), "Перезапустить")
 
-            global status
-            # Меняем значение глобальной переменной на "Restart".
-            status = call.data
+                global status
+                # Меняем значение глобальной переменной на "Restart".
+                status = call.data
 
-            # Увираем кнопки с клавиатуры.
-            no_buttons = telebot.types.ReplyKeyboardRemove()
+                # Увираем кнопки с клавиатуры.
+                no_buttons = telebot.types.ReplyKeyboardRemove()
 
-            # Логирование.
-            logging("dhadhfabot", "Бот перезапускается ...")
+                # Логирование.
+                logging("dhadhfabot", "Бот перезапускается ...")
 
-            # Удаление предыдущего сообщения.
-            bot.delete_message(call.message.chat.id, call.message.message_id)
+                # Удаление предыдущего сообщения.
+                bot.delete_message(call.message.chat.id, call.message.message_id)
 
-            # Отправляем сообщение.
-            bot.send_message(call.message.chat.id, "Бот перезапускается ...", reply_markup=no_buttons)
-            # Завершаем процесс опроса Telegram серверов на предмет новых сообщений.
-            bot.stop_polling()
+                # Отправляем сообщение.
+                bot.send_message(call.message.chat.id, "Бот перезапускается ...", reply_markup=no_buttons)
+                # Завершаем процесс опроса Telegram серверов на предмет новых сообщений.
+                bot.stop_polling()
 
 
 # Функция, обслуживающая отправленные сообщения.
 @bot.message_handler(content_types=["text"])
 def buttons_events(message):
-    # Записываем id сообщения.
-    writing_message_id(message)
-    # Логирование.
-    logging(message.from_user.username, message.text)
-
-    # Обработка запроса "Мониторинг".
-    if message.text == "Мониторинг":
-        output_button_service_stat(message)
-
-    # Обработка запроса "Очистить чат".
-    elif message.text == "Очистить чат":
-        delete_all_messages(message.chat.id)
-
-    # Обработка запроса "Запустить службы".
-    elif message.text == "Запустить службы":
-        result = on_off_services("on")
-
+    # Проверка доступа пользователя.
+    if user_in_db(message):
+        # Записываем id сообщения.
+        writing_message_id(message)
         # Логирование.
-        logging("dhadhfabot", result.replace("\n", " "))
+        logging(message.from_user.username, message.text)
 
-        bot.send_message(message.chat.id, result)
+        # Обработка запроса "Мониторинг".
+        if message.text == "Мониторинг":
+            output_button_service_stat(message)
 
-    # Обработка запроса "Остановить службы".
-    elif message.text == "Остановить службы":
-        result = on_off_services("off")
+        # Обработка запроса "Очистить чат".
+        elif message.text == "Очистить чат":
+            delete_all_messages(message.chat.id)
 
-        # Логирование.
-        logging("dhadhfabot", result.replace("\n", " "))
+        # Обработка запроса "Запустить службы".
+        elif message.text == "Запустить службы":
+            result = on_off_services("on")
 
-        bot.send_message(message.chat.id, result)
+            # Логирование.
+            logging("dhadhfabot", result.replace("\n", " "))
 
-    # Обработка запроса "Перезапустить бота".
-    elif message.text == "Перезапустить бота":
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        markup.add(
-            types.InlineKeyboardButton("Перезапустить", callback_data="Restart"),
-            types.InlineKeyboardButton("Назад", callback_data="Back")
-        )
+            bot.send_message(message.chat.id, result)
 
-        # Логирование.
-        logging("dhadhfabot", "Перезапустить бота?")
+        # Обработка запроса "Остановить службы".
+        elif message.text == "Остановить службы":
+            result = on_off_services("off")
 
-        bot.send_message(message.chat.id, "Перезапустить бота?", reply_markup=markup)
+            # Логирование.
+            logging("dhadhfabot", result.replace("\n", " "))
+
+            bot.send_message(message.chat.id, result)
+
+        # Обработка запроса "Перезапустить бота".
+        elif message.text == "Перезапустить бота":
+            markup = types.InlineKeyboardMarkup(row_width=1)
+            markup.add(
+                types.InlineKeyboardButton("Перезапустить", callback_data="Restart"),
+                types.InlineKeyboardButton("Назад", callback_data="Back")
+            )
+
+            # Логирование.
+            logging("dhadhfabot", "Перезапустить бота?")
+
+            bot.send_message(message.chat.id, "Перезапустить бота?", reply_markup=markup)
 
 
 # Процедура запуска бота.

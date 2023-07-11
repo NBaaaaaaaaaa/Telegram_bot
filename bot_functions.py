@@ -7,7 +7,7 @@ import traceback
 
 # Функция возваращает список имен служб записанных в файле.
 def get_list_services():
-    with open("list_of_services.txt", "r") as file:
+    with open("list_services.txt", "r") as file:
         list_services = list()
         for service_name in file.readlines():
             list_services.append(service_name.replace("\n", ""))
@@ -42,7 +42,6 @@ def get_process_memory_usage(process_name):
 
 # Функция возвращает словарь {"имя службы": {                          данных служб.
 #                               "uss": "физическая память",
-#                               "cpu": "нагрузку на цп (cpu)"},
 #                               "status": "статус службы", ...}
 def get_data_services():
     # Создание пустого словаря.
@@ -55,7 +54,6 @@ def get_data_services():
         # Добавляем в словарь данные процесса.
         dict_data_services[service.name()] = {
             "uss": str(get_process_memory_usage(service.binpath().split("\\")[-1])) + " Мб",
-            "cpu": None,
             "status": service.status()
         }
 
@@ -109,5 +107,3 @@ def on_off_services(mod, service_name=None):
         text = dict_phrases[mod]["text"]
 
     return text
-
-

@@ -170,12 +170,12 @@ def send_start_message(mod, chat_id):
 
     # Добавление стартовых кнопок.
     markup.add(
-        types.KeyboardButton("Мониторинг"),
-        types.KeyboardButton("Очистить чат"),
-        types.KeyboardButton("Остановить службы"),
-        types.KeyboardButton("Запустить службы"),
-        types.KeyboardButton("Перезапустить бота"),
-        types.KeyboardButton("Админ")
+        types.KeyboardButton("📊 Мониторинг"),
+        types.KeyboardButton("🧹 Очистить чат"),
+        types.KeyboardButton("🔴 Остановить службы"),
+        types.KeyboardButton("🟢 Запустить службы"),
+        types.KeyboardButton("🔁 Перезапустить бота"),
+        types.KeyboardButton("🫅 Админ")
     )
 
     # Логирование.
@@ -299,7 +299,7 @@ def callback_query(call):
                     text = "Остановить сервис {name}?".format(name=service_name)
 
                     # Добавление кнопки для остановки службы.
-                    markup.add(types.InlineKeyboardButton("Остановить",
+                    markup.add(types.InlineKeyboardButton("🔴 Остановить",
                                                           callback_data="Stop_service:{name}:{mes_id}".
                                                           format(name=service_name, mes_id=call.message.message_id)))
 
@@ -308,12 +308,12 @@ def callback_query(call):
                     text = "Запустить сервис {name}?".format(name=service_name)
 
                     # Добавление кнопки для запуска службы.
-                    markup.add(types.InlineKeyboardButton("Запустить",
+                    markup.add(types.InlineKeyboardButton("🟢 Запустить",
                                                           callback_data="Start_service:{name}:{mes_id}".
                                                           format(name=service_name, mes_id=call.message.message_id)))
 
                 # Добавление кнопки для возврата назад.
-                markup.add(types.InlineKeyboardButton("Назад", callback_data="Back"))
+                markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
 
                 # Логирование.
                 logging("dhadhfabot", text)
@@ -360,12 +360,12 @@ def callback_query(call):
                 text = "Удалить пользователя {name}?".format(name=call.data)
 
                 # Добавление кнопки удаления пользователя.
-                markup.add(types.InlineKeyboardButton("Удалить",
+                markup.add(types.InlineKeyboardButton("🧹 Удалить",
                                                       callback_data="Delete:{name}:{mes_id}".
                                                       format(name=call.data, mes_id=call.message.message_id)))
 
                 # Добавление кнопки для возврата назад.
-                markup.add(types.InlineKeyboardButton("Назад", callback_data="Back"))
+                markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
 
                 # Логирование.
                 logging("dhadhfabot", text)
@@ -428,16 +428,16 @@ def buttons_events(message):
         # Логирование.
         logging(message.from_user.username, message.text)
 
-        # Обработка запроса "Мониторинг".
-        if message.text == "Мониторинг":
+        # Обработка запроса "📊 Мониторинг".
+        if message.text == "📊 Мониторинг":
             output_button_service_stat(message)
 
-        # Обработка запроса "Очистить чат".
-        elif message.text == "Очистить чат":
+        # Обработка запроса "🧹 Очистить чат".
+        elif message.text == "🧹 Очистить чат":
             delete_all_messages(message.chat.id)
 
-        # Обработка запроса "Запустить службы".
-        elif message.text == "Запустить службы":
+        # Обработка запроса "🟢 Запустить службы".
+        elif message.text == "🟢 Запустить службы":
             result = on_off_services("on")
 
             # Логирование.
@@ -445,8 +445,8 @@ def buttons_events(message):
 
             bot.send_message(message.chat.id, result)
 
-        # Обработка запроса "Остановить службы".
-        elif message.text == "Остановить службы":
+        # Обработка запроса "🔴 Остановить службы".
+        elif message.text == "🔴 Остановить службы":
             result = on_off_services("off")
 
             # Логирование.
@@ -454,12 +454,12 @@ def buttons_events(message):
 
             bot.send_message(message.chat.id, result)
 
-        # Обработка запроса "Перезапустить бота".
-        elif message.text == "Перезапустить бота":
+        # Обработка запроса "🔁 Перезапустить бота".
+        elif message.text == "🔁 Перезапустить бота":
             markup = types.InlineKeyboardMarkup(row_width=1)
             markup.add(
-                types.InlineKeyboardButton("Перезапустить", callback_data="Restart"),
-                types.InlineKeyboardButton("Назад", callback_data="Back")
+                types.InlineKeyboardButton("🔁 Перезапустить", callback_data="Restart"),
+                types.InlineKeyboardButton("🔙 Назад", callback_data="Back")
             )
 
             # Логирование.
@@ -467,16 +467,16 @@ def buttons_events(message):
 
             bot.send_message(message.chat.id, "Перезапустить бота?", reply_markup=markup)
 
-        # Обработка запроса "Админ".
-        elif message.text == "Админ":
+        # Обработка запроса "🫅 Админ".
+        elif message.text == "🫅 Админ":
             # Создание поля для вставки кнопок.
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
 
             # Добавление стартовых кнопок.
             markup.add(
-                types.KeyboardButton("Добавить пользователя"),
-                types.KeyboardButton("Cписок пользователей"),
-                types.KeyboardButton("Назад")
+                types.KeyboardButton("👨 Добавить пользователя"),
+                types.KeyboardButton("📖 Cписок пользователей"),
+                types.KeyboardButton("🔙 Назад")
             )
 
             # Логирование.
@@ -484,19 +484,19 @@ def buttons_events(message):
 
             bot.send_message(message.chat.id, "Режим администратора.", reply_markup=markup)
 
-        # Обработка запроса "Добавить пользователя".
-        elif message.text == "Добавить пользователя":
+        # Обработка запроса "👨 Добавть пользователя".
+        elif message.text == "👨 Добавить пользователя":
             # Логирование.
             logging("dhadhfabot", "Испоользуй команду: /add *'@имя_пользователя'*")
 
             bot.send_message(message.chat.id, "Испоользуй команду: /add *'@имя_пользователя'*", parse_mode="Markdown")
 
-        # Обработка запроса "Cписок пользователей".
-        elif message.text == "Cписок пользователей":
+        # Обработка запроса "📖 Cписок пользователей".
+        elif message.text == "📖 Cписок пользователей":
             output_button_users(message)
 
-        # Обработка запроса "Назад".
-        elif message.text == "Назад":
+        # Обработка запроса "🔙 Назад".
+        elif message.text == "🔙 Назад":
             send_start_message("after_admin", message.chat.id)
 
 

@@ -15,6 +15,32 @@ def get_list_services():
         return list_services
 
 
+# Процедура перезаписи файла со службами.
+def rewrite_services(list_services):
+    with open("list_services.txt", "w") as file:
+        for service_name in list_services:
+            file.write("{n}\n".format(n=service_name))
+
+
+# Процедура добавления/удаления имени службы в/из файл/а.
+def add_delete_service(mod, service_name):
+    # Перобразуем имя службы. Удаляем лишние пробелы справа и слева.
+    service_name = " ".join([_ for _ in service_name.split(" ") if len(_) > 0])
+
+    # Получаем список всех записанных служб.
+    list_sevices = get_list_services()
+
+    # Добавляем имя службы.
+    if mod == "add" and service_name not in list_sevices:
+        list_sevices.append(service_name)
+    # Удаляем имя службы.
+    elif mod == "delete" and service_name in list_sevices:
+        list_sevices.remove(service_name)
+
+    # Сохраняем изменения.
+    rewrite_services(list_sevices)
+
+
 # Функция возвращает кол-во памяти (Мб), которое освободится после остановки службы.
 def get_process_memory_usage(process_name):
     pythoncom.CoInitialize()
@@ -47,7 +73,13 @@ def get_data_services():
     # Создание пустого словаря.
     dict_data_services = dict()
 
-    list_services = list(psutil.win_service_get(i) for i in get_list_services())
+    list_services = list()
+
+    for service_name in get_list_services():
+        try:
+            list_services.append(psutil.win_service_get(service_name))
+        except Exception as e:
+            print(e)
 
     # Перебираем все службы.
     for service in list_services:

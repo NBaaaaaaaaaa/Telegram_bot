@@ -1,10 +1,11 @@
 import telebot
 from telebot import types
 import time
-import os
 from bot_functions import *
 from logger import logging
 from TOKEN import TOKEN
+from work_db import add_delete_user, user_in_db, add_chat_id_db, get_dict_username_id, add_delete_service
+
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -32,73 +33,7 @@ def delete_all_messages(chat_id):
         open("all_messages/{chat_id}".format(chat_id=chat_id), "w")
 
 
-# Функция возвращает список ["имя пользователя", "id чата"].
-def split_username_id(string):
-    list_string = list(string)
-    for ind in range(len(list_string) - 1, -1, -1):
-        if list_string[ind] == ";":
-            username = "".join(list_string[:ind])
-            chat_id = "".join(list_string[ind + 1:])
-            return [username, chat_id]
-
-
-# Функция возвращает словарь {"имя пользователя": "id чата", ...}.
-def get_dict_username_id():
-    with open("users/users_db.txt", "r") as file:
-        return dict(split_username_id(string.replace("\n", "")) for string in file.readlines())
-
-
-# Процедура перезаписи файла с пользователями.
-def rewrite_db_file(dict_file):
-    with open("users/users_db.txt", "w") as file:
-        for username in sorted(dict_file.keys()):
-            file.write("{n};{i}\n".format(n=username, i=dict_file[username]))
-
-
-# Процедура добавления имени пользователя в файл.
-def add_chat_user_db(username):
-    # Получаем словарь {"имя пользователя": "id чата", ...}.
-    dict_file = get_dict_username_id()
-    # Запись в файл.
-    if username not in dict_file:
-        dict_file[username[1:]] = ""
-        rewrite_db_file(dict_file)
-
-
-# Процедура добавления id чата в файл.
-def add_chat_id_db(message):
-    # Получаем словарь {"имя пользователя": "id чата", ...}.
-    dict_file = get_dict_username_id()
-
-    # Добавляем id чата в словарь, если поле пустое.
-    if message.from_user.username in dict_file:
-        if dict_file[message.from_user.username] == "":
-            dict_file[message.from_user.username] = message.chat.id
-            # Создаем файл под запись id сообщений.
-            open("all_messages/{chat_id}".format(chat_id=message.chat.id), "w").close()
-            # Перезаписываем бд.
-            rewrite_db_file(dict_file)
-
-
-# Процедура удаления пользователя.
-def delete_user(username):
-    # Получаем словарь {"имя пользователя": "id чата", ...}.
-    dict_file = get_dict_username_id()
-
-    if username in dict_file:
-        if dict_file[username] != "":
-            chat_id = int(dict_file[username])
-            # Удаляем файл предназначенный для id сообщений.
-            os.remove("all_messages/{chat_id}".format(chat_id=chat_id))
-
-        # Удаляем пользователя из словаря.
-        del dict_file[username]
-
-    # Сохраняем изменения словаря.
-    rewrite_db_file(dict_file)
-
-
-# Функция возвращает имя пользователя по id чата.
+# Функция возвращает имя пользователя по id чата. Необходима только для логов.
 def get_username(chat_id):
     # Получаем словарь {"имя пользователя": "id чата", ...}.
     dict_file = get_dict_username_id()
@@ -109,17 +44,6 @@ def get_username(chat_id):
                 return username
         except ValueError:
             print("{n} не имеет id чата.".format(n=username))
-
-
-# Функция возвращает есть ли пользователь в файле или нет.
-def user_in_db(message):
-    # Получаем словарь {"имя пользователя": "id чата", ...}.
-    dict_file = get_dict_username_id()
-
-    if str(message.chat.id) in dict_file.values() or message.from_user.username in dict_file:
-        return True
-
-    return False
 
 
 # Функция отправки стартового сообщения.
@@ -159,7 +83,7 @@ def send_message_after_restart():
     for username in dict_file:
         try:
             send_start_message("restart", int(dict_file[username]))
-        except ValueError:
+        except TypeError:
             print("{n} не получил сообщение о рестарте, так как не имеет id чата.".format(n=username))
 
 
@@ -186,8 +110,8 @@ def add_command(message):
         try:
             # Логирование.
             logging(message.from_user.username, message.text)
-            # Записываем id чата в файл.
-            add_chat_user_db(message.text.split(" ", 1)[1].replace(" ", ""))
+            # Записываем пользователя в бд.
+            add_delete_user("add", message.text.split(" ", 1)[1].replace(" ", ""))
 
         except IndexError:
             print("Неверно ведена команда /addUser: {c}".format(c=message.text))
@@ -206,21 +130,6 @@ def add_command(message):
 
         except IndexError:
             print("Неверно ведена команда /addService: {c}".format(c=message.text))
-
-
-# Функция удаления службы.
-@bot.message_handler(commands=['deleteService'])
-def add_command(message):
-    # Проверка доступа пользователя.
-    if user_in_db(message):
-        try:
-            # Логирование.
-            logging(message.from_user.username, message.text)
-            # Записываем id чата в файл.
-            add_delete_service("delete", message.text.split(" ", 1)[1])
-
-        except IndexError:
-            print("Неверно ведена команда /deleteService: {c}".format(c=message.text))
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
@@ -428,7 +337,7 @@ def callback_query(call):
 
             # Обработка запроса по удалению пользователя.
             elif call.data.split(":", 2)[0] == "Delete":
-                delete_user(call.data.split(":", 2)[1])
+                add_delete_user("delete", call.data.split(":", 2)[1])
 
                 # Удаляем 2 пердыдущих сообщения.
                 bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
@@ -437,7 +346,6 @@ def callback_query(call):
                 # Логирование.
                 logging(get_username(call.message.chat.id), "Удалить")
 
-                # Пауза, чтобы служба успела запуститься.
                 output_button_users(call.message)
 
             # Обработка запроса вернуться назад.

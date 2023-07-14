@@ -23,7 +23,7 @@ def delete_all_messages(chat_id):
         list_messages_id = list(map(int, file.read().split(";")[:-1]))
         min_id, max_id = min(list_messages_id), max(list_messages_id)
 
-        for message_id in range(min_id, max_id + 3):
+        for message_id in range(min_id - 10, max_id + 3):
             try:
                 bot.delete_message(chat_id, message_id)
             except Exception as e:
@@ -35,15 +35,22 @@ def delete_all_messages(chat_id):
 
 # Функция возвращает имя пользователя по id чата. Необходима только для логов.
 def get_username(chat_id):
-    # Получаем словарь {"имя пользователя": "id чата", ...}.
-    dict_file = get_dict_username_id()
+    result = get_dict_username_id()
 
-    for username in dict_file:
-        try:
-            if int(dict_file[username]) == chat_id:
-                return username
-        except ValueError:
-            print("{n} не имеет id чата.".format(n=username))
+    if result["stat"]:
+        # Получаем словарь {"имя пользователя": "id чата", ...}.
+        dict_file = result["dict_users"]
+
+        for username in dict_file:
+            try:
+                if int(dict_file[username]) == chat_id:
+                    return username
+
+            except ValueError:
+                print("{n} не имеет id чата.".format(n=username))
+
+    else:
+        print(result["comment"])
 
 
 # Функция отправки стартового сообщения.
@@ -78,58 +85,112 @@ def send_start_message(mod, chat_id):
 # Функция отправки сообщений всем пользователям о перезапуске бота.
 def send_message_after_restart():
     # Получаем словарь {"имя пользователя": "id чата", ...}.
-    dict_file = get_dict_username_id()
+    result = get_dict_username_id()
 
-    for username in dict_file:
-        try:
-            send_start_message("restart", int(dict_file[username]))
-        except TypeError:
-            print("{n} не получил сообщение о рестарте, так как не имеет id чата.".format(n=username))
+    if result["stat"]:
+        dict_file = result["dict_file"]
+        for username in dict_file:
+            try:
+                send_start_message("restart", int(dict_file[username]))
+
+            except TypeError:
+                print("{n} не получил сообщение о рестарте, так как не имеет id чата.".format(n=username))
+
+    else:
+        print(result["comment"])
 
 
 # Функция начала работы с ботом.
 @bot.message_handler(commands=['start'])
 def start(message):
+    # Логирование.
+    logging(message.from_user.username, message.text)
+
     # Проверка доступа пользователя.
-    if user_in_db(message):
-        # Логирование.
-        logging(message.from_user.username, message.text)
+    result = user_in_db(message)
+    if result["stat"]:
         # Записываем id чата в файл.
-        add_chat_id_db(message)
-        # Выводим стартовове сообщение.
-        send_start_message("start", message.chat.id)
-        # Записываем id сообщения.
-        writing_message_id(message)
+        result = add_chat_id_db(message)
+
+        # Сработает, когда id чата у пользователя записано в бд.
+        if result["comment"]:
+            # Логирование.
+            logging("dhadhfabot", result["comment"])
+
+            bot.send_message(message.chat.id, result["comment"])
+
+        if result["stat"]:
+            # Выводим стартовове сообщение.
+            send_start_message("start", message.chat.id)
+            # Записываем id сообщения.
+            writing_message_id(message)
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Функция добавления пользователя.
 @bot.message_handler(commands=['addUser'])
 def add_command(message):
-    # Проверка доступа пользователя.
-    if user_in_db(message):
-        try:
-            # Логирование.
-            logging(message.from_user.username, message.text)
-            # Записываем пользователя в бд.
-            add_delete_user("add", message.text.split(" ", 1)[1].replace(" ", ""))
+    # Логирование.
+    logging(message.from_user.username, message.text)
 
+    # Проверка доступа пользователя.
+    result = user_in_db(message)
+    if result["stat"]:
+        try:
+            # Записываем пользователя в бд.
+            result = add_delete_user("add", message.text.split(" ", 1)[1].replace(" ", ""))
+
+            # Логирование.
+            logging("dhadhfabot", result)
+
+            bot.send_message(message.chat.id, result)
         except IndexError:
-            print("Неверно ведена команда /addUser: {c}".format(c=message.text))
+            # Логирование.
+            logging("dhadhfabot", "Неверно ведена команда /addUser: {c}".format(c=message.text))
+
+            bot.send_message(message.chat.id, "Неверно ведена команда /addUser: {c}".format(c=message.text))
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Функция добавления службы.
 @bot.message_handler(commands=['addService'])
 def add_command(message):
+    # Логирование.
+    logging(message.from_user.username, message.text)
+
     # Проверка доступа пользователя.
-    if user_in_db(message):
+    result = user_in_db(message)
+    if result["stat"]:
         try:
+            # Добавляем имя службы в бд.
+            result = add_delete_service("add", message.text.split(" ", 1)[1])
+
             # Логирование.
-            logging(message.from_user.username, message.text)
-            # Записываем id чата в файл.
-            add_delete_service("add", message.text.split(" ", 1)[1])
+            logging("dhadhfabot", result)
+
+            bot.send_message(message.chat.id, result)
 
         except IndexError:
-            print("Неверно ведена команда /addService: {c}".format(c=message.text))
+            # Логирование.
+            logging("dhadhfabot", "Неверно ведена команда /addService: {c}".format(c=message.text))
+
+            bot.send_message(message.chat.id, "Неверно ведена команда /addService: {c}".format(c=message.text))
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
@@ -140,62 +201,89 @@ def get_status():
 
 # Функция вывода данных служб в формате кнопок.
 def output_button_service_stat(message):
-    dict_services = get_data_services()
+    result = get_data_services()
 
-    # Логирование.
-    logging("dhadhfabot", "Мониторинг:")
-
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    # Заполяем поле кнопками.
-    for service in sorted(dict_services.keys()):
-        text = "; ".join(
-            [service, dict_services[service]["uss"],
-             dict_services[service]["status"]])
-
-        markup.add(types.InlineKeyboardButton(text, callback_data=service))
-
+    if result["stat"]:
+        dict_services = result["dict_services"]
         # Логирование.
-        logging("dhadhfabot", text)
+        logging("dhadhfabot", "Мониторинг:")
 
-    bot.send_message(message.chat.id, "Мониторинг:", reply_markup=markup)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        # Заполяем поле кнопками.
+        for service in sorted(dict_services.keys()):
+            text = "; ".join(
+                [service, dict_services[service]["uss"],
+                 dict_services[service]["status"]])
+
+            markup.add(types.InlineKeyboardButton(text, callback_data=service))
+
+            # Логирование.
+            logging("dhadhfabot", text)
+
+        bot.send_message(message.chat.id, "Мониторинг:", reply_markup=markup)
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Функция вывода имен служб в формате кнопок.
 def output_button_service(message):
-    list_services = get_list_services()
+    result = get_list_services()
 
-    # Логирование.
-    logging("dhadhfabot", "Службы:")
-
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    # Заполяем поле кнопками.
-    for service in sorted(list_services):
-        text = service
-
-        markup.add(types.InlineKeyboardButton(text, callback_data="list_{s}".format(s=service)))
+    if result["stat"]:
+        list_services = result["list_services"]
 
         # Логирование.
-        logging("dhadhfabot", text)
+        logging("dhadhfabot", "Службы:")
 
-    bot.send_message(message.chat.id, "Службы:", reply_markup=markup)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        # Заполяем поле кнопками.
+        for service in sorted(list_services):
+            text = service
+
+            markup.add(types.InlineKeyboardButton(text, callback_data="list_{s}".format(s=service)))
+
+            # Логирование.
+            logging("dhadhfabot", text)
+
+        bot.send_message(message.chat.id, "Службы:", reply_markup=markup)
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Функция вывода пользователей в формате кнопок.
 def output_button_users(message):
-    dict_users = get_dict_username_id()
+    result = get_dict_username_id()
 
-    # Логирование.
-    logging("dhadhfabot", "Пользователи:")
-
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    # Заполяем поле кнопками.
-    for username in sorted(dict_users.keys()):
-        markup.add(types.InlineKeyboardButton(username, callback_data=username))
+    if result["stat"]:
+        # Получаем словарь пользователей.
+        dict_users = result["dict_users"]
 
         # Логирование.
-        logging("dhadhfabot", username)
+        logging("dhadhfabot", "Пользователи:")
 
-    bot.send_message(message.chat.id, "Пользователи:", reply_markup=markup)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        # Заполяем поле кнопками.
+        for username in sorted(dict_users.keys()):
+            markup.add(types.InlineKeyboardButton(username, callback_data=username))
+
+            # Логирование.
+            logging("dhadhfabot", username)
+
+        bot.send_message(message.chat.id, "Пользователи:", reply_markup=markup)
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Функция обработки нажажатия кнопок со встроенной клавиатуры.
@@ -203,187 +291,230 @@ def output_button_users(message):
 def callback_query(call):
     if call.message:
         # Проверка доступа пользователя.
-        if user_in_db(call.message):
+        result = user_in_db(call.message)
+
+        if result["stat"]:
             # Записываем id сообщения.
             writing_message_id(call.message)
 
-            # Получаем словарь служб с их данными.
-            dict_services = get_data_services()
-            # Получаем словарь пользователей.
-            list_users = list(get_dict_username_id())
-            # Получаем список имен служб.
-            list_services = get_list_services()
+            result_us = get_dict_username_id()
+            result_se = get_list_services()
+            result_da = get_data_services()
 
-            # Обработка запроса по нажатию на inline кнопки, содержащую данные службы.
-            if call.data in dict_services:
-                markup = types.InlineKeyboardMarkup(row_width=1)
+            if result_us["stat"] and result_se["stat"] and result_da["stat"]:
+                # Получаем словарь служб с их данными.
+                dict_services = result_da["dict_services"]
+                # Получаем словарь пользователей.
+                list_users = list(result_us["dict_users"])
+                # Получаем список имен служб.
+                list_services = result_se["list_services"]
 
-                service_name, service_status = call.data, dict_services[call.data]["status"]
+                # Обработка запроса по нажатию на inline кнопки, содержащую данные службы.
+                if call.data in dict_services:
+                    markup = types.InlineKeyboardMarkup(row_width=1)
 
-                # Формируем строку для ответа.
-                text = ""
-                # Остановка службы.
-                if service_status != "stopped":
-                    text = "Остановить сервис {name}?".format(name=service_name)
+                    service_name, service_status = call.data, dict_services[call.data]["status"]
 
-                    # Добавление кнопки для остановки службы.
-                    markup.add(types.InlineKeyboardButton("🔴 Остановить",
-                                                          callback_data="Stop_service:{name}:{mes_id}".
+                    # Формируем строку для ответа.
+                    text = ""
+                    # Остановка службы.
+                    if service_status != "stopped":
+                        text = "Остановить сервис {name}?".format(name=service_name)
+
+                        # Добавление кнопки для остановки службы.
+                        markup.add(types.InlineKeyboardButton("🔴 Остановить",
+                                                              callback_data="Stop_service:{name}:{mes_id}".
+                                                              format(name=service_name, mes_id=call.message.message_id)))
+
+                    # Запуск службы.
+                    else:
+                        text = "Запустить сервис {name}?".format(name=service_name)
+
+                        # Добавление кнопки для запуска службы.
+                        markup.add(types.InlineKeyboardButton("🟢 Запустить",
+                                                              callback_data="Start_service:{name}:{mes_id}".
+                                                              format(name=service_name, mes_id=call.message.message_id)))
+
+                    # Добавление кнопки для возврата назад.
+                    markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
+
+                    # Логирование.
+                    logging("dhadhfabot", text)
+
+                    # Вывод сообщения с кнопками.
+                    bot.send_message(call.message.chat.id, text, reply_markup=markup)
+
+                # Обработка запроса по остановке службы.
+                elif call.data.split(":", 2)[0] == "Stop_service":
+                    result = on_off_services("off", call.data.split(":", 2)[1])
+
+                    # Удаляем 2 пердыдущих сообщения.
+                    bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+                    # Логирование.
+                    logging(get_username(call.message.chat.id), "Остановить")
+                    logging("dhadhfabot", result.replace("\n", " "))
+
+                    bot.send_message(call.message.chat.id, result)
+                    output_button_service_stat(call.message)
+
+                # Обработка запроса по запуску службы.
+                elif call.data.split(":", 2)[0] == "Start_service":
+                    result = on_off_services("on", call.data.split(":", 2)[1])
+
+                    # Удаляем 2 пердыдущих сообщения.
+                    bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+                    # Логирование.
+                    logging(get_username(call.message.chat.id), "Запустить")
+                    logging("dhadhfabot", result.replace("\n", " "))
+
+                    bot.send_message(call.message.chat.id, result)
+                    # Пауза, чтобы служба успела запуститься.
+                    time.sleep(1)
+                    output_button_service_stat(call.message)
+
+                # Обработка запроса по нажатию на inline кнопки, содержащую имя службы.
+                elif call.data in list("list_{s}".format(s=_) for _ in list_services):
+                    markup = types.InlineKeyboardMarkup(row_width=1)
+
+                    service_name = call.data.split("_", 1)[1]
+                    text = "Удалить службу {name}?".format(name=service_name)
+
+                    # Добавление кнопки для удаления службы.
+                    markup.add(types.InlineKeyboardButton("🔴 Удалить",
+                                                          callback_data="Delete_service:{name}:{mes_id}".
                                                           format(name=service_name, mes_id=call.message.message_id)))
 
-                # Запуск службы.
+                    # Добавление кнопки для возврата назад.
+                    markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
+
+                    # Логирование.
+                    logging("dhadhfabot", text)
+
+                    # Вывод сообщения с кнопками.
+                    bot.send_message(call.message.chat.id, text, reply_markup=markup)
+
+                # Обработка запроса по удалению службы.
+                elif call.data.split(":", 2)[0] == "Delete_service":
+                    result = add_delete_service("delete", call.data.split(":", 2)[1])
+
+                    # Логирование.
+                    logging("dhadhfabot", result)
+
+                    bot.send_message(call.message.chat.id, result)
+
+                    # Удаляем 2 пердыдущих сообщения.
+                    bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+                    # Логирование.
+                    logging(get_username(call.message.chat.id), "Удалить")
+
+                    output_button_service(call.message)
+
+                # Если было передано значение равное имени пользователя.
+                elif call.data in list_users:
+                    markup = types.InlineKeyboardMarkup(row_width=1)
+
+                    text = "Удалить пользователя {name}?".format(name=call.data)
+
+                    # Добавление кнопки удаления пользователя.
+                    markup.add(types.InlineKeyboardButton("🧹 Удалить",
+                                                          callback_data="Delete:{name}:{mes_id}".
+                                                          format(name=call.data, mes_id=call.message.message_id)))
+
+                    # Добавление кнопки для возврата назад.
+                    markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
+
+                    # Логирование.
+                    logging("dhadhfabot", text)
+
+                    # Вывод сообщения с кнопками.
+                    bot.send_message(call.message.chat.id, text, reply_markup=markup)
+
+                # Обработка запроса по удалению пользователя.
+                elif call.data.split(":", 2)[0] == "Delete":
+                    result = add_delete_user("delete", call.data.split(":", 2)[1])
+
+                    # Удаляем 2 пердыдущих сообщения.
+                    bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+                    # Логирование.
+                    logging(get_username(call.message.chat.id), "Удалить")
+                    logging("dhadhfabot", result)
+
+                    bot.send_message(call.message.chat.id, result)
+
+                    # Вывод сообщения с кнопками.
+                    output_button_users(call.message)
+
+                # Обработка запроса вернуться назад.
+                elif call.data == "Back":
+                    # Логирование.
+                    logging(get_username(call.message.chat.id), "Назад")
+
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+                # Обработка запроса перезапуска бота.
+                elif call.data == "Restart":
+                    # Логирование.
+                    logging(get_username(call.message.chat.id), "Перезапустить")
+
+                    global status
+                    # Меняем значение глобальной переменной на "Restart".
+                    status = call.data
+
+                    # Увираем кнопки с клавиатуры.
+                    no_buttons = telebot.types.ReplyKeyboardRemove()
+
+                    # Логирование.
+                    logging("dhadhfabot", "Бот перезапускается ...")
+
+                    # Удаление предыдущего сообщения.
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+                    # Отправляем сообщение.
+                    bot.send_message(call.message.chat.id, "Бот перезапускается ...", reply_markup=no_buttons)
+                    # Завершаем процесс опроса Telegram серверов на предмет новых сообщений.
+                    bot.stop_polling()
+
+            else:
+                if not result_se["stat"]:
+                    # Логирование.
+                    logging("dhadhfabot", result_se["comment"])
+
+                    bot.send_message(call.message.chat.id, result_se["comment"])
+
+                elif not result_us:
+                    # Логирование.
+                    logging("dhadhfabot", result_us["comment"])
+
+                    bot.send_message(call.message.chat.id, result_us["comment"])
+
                 else:
-                    text = "Запустить сервис {name}?".format(name=service_name)
+                    # Логирование.
+                    logging("dhadhfabot", result_da["comment"])
 
-                    # Добавление кнопки для запуска службы.
-                    markup.add(types.InlineKeyboardButton("🟢 Запустить",
-                                                          callback_data="Start_service:{name}:{mes_id}".
-                                                          format(name=service_name, mes_id=call.message.message_id)))
+                    bot.send_message(call.message.chat.id, result_da["comment"])
 
-                # Добавление кнопки для возврата назад.
-                markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
+        else:
+            # Логирование.
+            logging("dhadhfabot", result["comment"])
 
-                # Логирование.
-                logging("dhadhfabot", text)
-
-                # Вывод сообщения с кнопками.
-                bot.send_message(call.message.chat.id, text, reply_markup=markup)
-
-            # Обработка запроса по остановке службы.
-            elif call.data.split(":", 2)[0] == "Stop_service":
-                result = on_off_services("off", call.data.split(":", 2)[1])
-
-                # Удаляем 2 пердыдущих сообщения.
-                bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-
-                # Логирование.
-                logging(get_username(call.message.chat.id), "Остановить")
-                logging("dhadhfabot", result.replace("\n", " "))
-
-                bot.send_message(call.message.chat.id, result)
-                output_button_service_stat(call.message)
-
-            # Обработка запроса по запуску службы.
-            elif call.data.split(":", 2)[0] == "Start_service":
-                result = on_off_services("on", call.data.split(":", 2)[1])
-
-                # Удаляем 2 пердыдущих сообщения.
-                bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-
-                # Логирование.
-                logging(get_username(call.message.chat.id), "Запустить")
-                logging("dhadhfabot", result.replace("\n", " "))
-
-                bot.send_message(call.message.chat.id, result)
-                # Пауза, чтобы служба успела запуститься.
-                time.sleep(1)
-                output_button_service_stat(call.message)
-
-            # Обработка запроса по нажатию на inline кнопки, содержащую имя службы.
-            elif call.data in list("list_{s}".format(s=_) for _ in list_services):
-                markup = types.InlineKeyboardMarkup(row_width=1)
-
-                service_name = call.data.split("_", 1)[1]
-                text = "Удалить службу {name}?".format(name=service_name)
-
-                # Добавление кнопки для удаления службы.
-                markup.add(types.InlineKeyboardButton("🔴 Удалить",
-                                                      callback_data="Delete_service:{name}:{mes_id}".
-                                                      format(name=service_name, mes_id=call.message.message_id)))
-
-                # Добавление кнопки для возврата назад.
-                markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
-
-                # Логирование.
-                logging("dhadhfabot", text)
-
-                # Вывод сообщения с кнопками.
-                bot.send_message(call.message.chat.id, text, reply_markup=markup)
-
-            # Обработка запроса по удалению службы.
-            elif call.data.split(":", 2)[0] == "Delete_service":
-                add_delete_service("delete", call.data.split(":", 2)[1])
-
-                # Удаляем 2 пердыдущих сообщения.
-                bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-
-                # Логирование.
-                logging(get_username(call.message.chat.id), "Удалить")
-
-                output_button_service(call.message)
-
-            # Если было передано значение равное имени пользователя.
-            elif call.data in list_users:
-                markup = types.InlineKeyboardMarkup(row_width=1)
-
-                text = "Удалить пользователя {name}?".format(name=call.data)
-
-                # Добавление кнопки удаления пользователя.
-                markup.add(types.InlineKeyboardButton("🧹 Удалить",
-                                                      callback_data="Delete:{name}:{mes_id}".
-                                                      format(name=call.data, mes_id=call.message.message_id)))
-
-                # Добавление кнопки для возврата назад.
-                markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
-
-                # Логирование.
-                logging("dhadhfabot", text)
-
-                # Вывод сообщения с кнопками.
-                bot.send_message(call.message.chat.id, text, reply_markup=markup)
-
-            # Обработка запроса по удалению пользователя.
-            elif call.data.split(":", 2)[0] == "Delete":
-                add_delete_user("delete", call.data.split(":", 2)[1])
-
-                # Удаляем 2 пердыдущих сообщения.
-                bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-
-                # Логирование.
-                logging(get_username(call.message.chat.id), "Удалить")
-
-                output_button_users(call.message)
-
-            # Обработка запроса вернуться назад.
-            elif call.data == "Back":
-                # Логирование.
-                logging(get_username(call.message.chat.id), "Назад")
-
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-
-            # Обработка запроса перезапуска бота.
-            elif call.data == "Restart":
-                # Логирование.
-                logging(get_username(call.message.chat.id), "Перезапустить")
-
-                global status
-                # Меняем значение глобальной переменной на "Restart".
-                status = call.data
-
-                # Увираем кнопки с клавиатуры.
-                no_buttons = telebot.types.ReplyKeyboardRemove()
-
-                # Логирование.
-                logging("dhadhfabot", "Бот перезапускается ...")
-
-                # Удаление предыдущего сообщения.
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-
-                # Отправляем сообщение.
-                bot.send_message(call.message.chat.id, "Бот перезапускается ...", reply_markup=no_buttons)
-                # Завершаем процесс опроса Telegram серверов на предмет новых сообщений.
-                bot.stop_polling()
+            bot.send_message(call.message.chat.id, result["comment"])
 
 
 # Функция, обслуживающая отправленные сообщения.
 @bot.message_handler(content_types=["text"])
 def buttons_events(message):
     # Проверка доступа пользователя.
-    if user_in_db(message):
+    result = user_in_db(message)
+
+    if result["stat"]:
         # Записываем id сообщения.
         writing_message_id(message)
         # Логирование.
@@ -472,6 +603,12 @@ def buttons_events(message):
             # Обработка запроса "🔙 Назад".
         elif message.text == "🔙 Назад":
             send_start_message("after_admin", message.chat.id)
+
+    else:
+        # Логирование.
+        logging("dhadhfabot", result["comment"])
+
+        bot.send_message(message.chat.id, result["comment"])
 
 
 # Процедура запуска бота.

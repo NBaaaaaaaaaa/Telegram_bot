@@ -1,5 +1,6 @@
 from pymysql import connect, Error, cursors
 from config_db import host, user, password, db_name
+import traceback
 
 
 # Процедура создания таблиц.
@@ -71,124 +72,183 @@ def connect_db():
         return connection
 
     except Error as e:
-        print(e)
         if int(str(e)[1:5]) == 1049:
             create_db()
             connect_db()
 
         else:
-            return 0
+            return str(e)
 
 
 # Функция возвращает наличие пользователь в бд.
 def user_in_db(message):
     connection = connect_db()
 
-    select_user_query = """
-            SELECT user_name FROM users
-            WHERE user_name = '{user_name}' OR chat_id = {chat_id}
-            """.format(user_name=message.from_user.username, chat_id=message.chat.id)
+    if type(connection) == str:
+        return {"stat": False, "comment": connection}
 
-    cur = connection.cursor()
-    cur.execute(select_user_query)
-    if cur.fetchall():
-        return True
+    try:
+        select_user_query = """
+                SELECT user_name FROM users
+                WHERE user_name = '{user_name}' OR chat_id = {chat_id}
+                """.format(user_name=message.from_user.username, chat_id=message.chat.id)
 
-    return False
+        cur = connection.cursor()
+        cur.execute(select_user_query)
+        if cur.fetchall():
+            return {"stat": True}
+
+        return {"stat": False, "comment": "У вас нет прав доступа."}
+
+    except Error as e:
+        return {"stat": False, "comment": str(e)}
 
 
-# Процедура добавления/удаления пользователя в/из бд.
+# Функция добавления/удаления пользователя в/из бд.
 def add_delete_user(mod, username):
     connection = connect_db()
 
-    query = ""
-    if mod == "add":
-        username = username.split("@", 1)[1]
+    if type(connection) == str:
+        return connection
 
-        query = """
-            INSERT IGNORE INTO users (user_name)
-            VALUES ("{username}")
-            """.format(username=username)
+    try:
+        query = ""
+        text = ""
+        if mod == "add":
+            username = username.split("@", 1)[1]
 
-    elif mod == "delete":
-        query = """
-            DELETE FROM users
-            WHERE user_name='{user_name}'""".format(user_name=username)
+            query = """
+                INSERT IGNORE INTO users (user_name)
+                VALUES ("{username}")
+                """.format(username=username)
 
-    connection.cursor().execute(query)
-    connection.commit()
+            text = "Пользователь {u} успешно добавлен.".format(u=username)
+
+        elif mod == "delete":
+            query = """
+                DELETE FROM users
+                WHERE user_name='{user_name}'""".format(user_name=username)
+
+            text = "Пользователь {u} успешно удален.".format(u=username)
+
+        connection.cursor().execute(query)
+        connection.commit()
+
+        return text
+
+    except Error as e:
+        return str(e)
 
 
-# Процедура добавления id чата в бд.
+# Функция добавления id чата в бд.
 def add_chat_id_db(message):
     connection = connect_db()
 
-    select_user_query = """
-        SELECT * FROM users
-        WHERE user_name = '{user_name}'""".format(user_name=message.from_user.username)
+    if type(connection) == str:
+        return {"stat": False, "comment": connection}
 
-    cur = connection.cursor()
-    cur.execute(select_user_query)
-    result = cur.fetchall()
+    try:
+        select_user_query = """
+            SELECT * FROM users
+            WHERE user_name = '{user_name}'""".format(user_name=message.from_user.username)
 
-    if not result[0]["chat_id"]:
-        replace_tuple_query = """
-            REPLACE INTO users 
-            VALUES ({user_id}, '{user_name}', {chat_id});
-            """.format(user_id=result[0]["user_id"], user_name=result[0]["user_name"], chat_id=message.chat.id)
+        cur = connection.cursor()
+        cur.execute(select_user_query)
+        result = cur.fetchall()
 
-        connection.cursor().execute(replace_tuple_query)
-        connection.commit()
+        if not result[0]["chat_id"]:
+            replace_tuple_query = """
+                REPLACE INTO users 
+                VALUES ({user_id}, '{user_name}', {chat_id});
+                """.format(user_id=result[0]["user_id"], user_name=result[0]["user_name"], chat_id=message.chat.id)
+
+            connection.cursor().execute(replace_tuple_query)
+            connection.commit()
+
+            return {"stat": True, "comment": "Id чата успешно внесен в таблицу."}
+
+        return {"stat": True, "comment": None}
+
+    except Error as e:
+        return {"stat": False, "comment": str(e)}
 
 
 # Функция возвращает словарь {"имя пользователя": "id чата", ...}.
 def get_dict_username_id():
     connection = connect_db()
 
-    select_user_query = "SELECT user_name, chat_id FROM users"
+    if type(connection) == str:
+        return {"stat": False, "comment": connection}
 
-    cur = connection.cursor()
-    cur.execute(select_user_query)
-    result = cur.fetchall()
+    try:
+        select_user_query = "SELECT user_name, chat_id FROM users"
 
-    send_dict = {}
-    for user_data in result:
-        send_dict[user_data["user_name"]] = user_data["chat_id"]
+        cur = connection.cursor()
+        cur.execute(select_user_query)
+        result = cur.fetchall()
 
-    return send_dict
+        send_dict = {}
+        for user_data in result:
+            send_dict[user_data["user_name"]] = user_data["chat_id"]
+
+        return {"stat": True, "dict_users": send_dict}
+
+    except Error as e:
+        return {"stat": False, "comment": str(e)}
 
 
 # Функция возваращает список имен служб в бд.
 def get_list_services():
     connection = connect_db()
 
-    select_user_query = "SELECT service_name FROM services"
+    if type(connection) == str:
+        return {"stat": False, "comment": connection}
 
-    cur = connection.cursor()
-    cur.execute(select_user_query)
-    result = cur.fetchall()
+    try:
+        select_user_query = "SELECT service_name FROM services"
 
-    return list(service["service_name"] for service in result)
+        cur = connection.cursor()
+        cur.execute(select_user_query)
+        result = cur.fetchall()
+
+        return {"stat": True, "list_services": list(service["service_name"] for service in result)}
+
+    except Error as e:
+        return {"stat": False, "comment": str(e)}
 
 
-# Процедура добавления/удаления имени службы в/из файл/а.
+# Функция добавления/удаления имени службы в/из файл/а.
 def add_delete_service(mod, service_name):
     connection = connect_db()
 
-    query = ""
-    if mod == "add":
-        query = """
-                INSERT IGNORE INTO services (service_name)
-                VALUES ("{service_name}")
-                """.format(service_name=service_name)
+    if type(connection) == str:
+        return connection
 
-    elif mod == "delete":
-        query = """
-                DELETE FROM services
-                WHERE service_name='{service_name}'""".format(service_name=service_name)
+    try:
+        query = ""
+        text = ""
+        if mod == "add":
+            query = """
+                    INSERT IGNORE INTO services (service_name)
+                    VALUES ("{service_name}")
+                    """.format(service_name=service_name)
 
-    connection.cursor().execute(query)
-    connection.commit()
+            text = "Служба {s} успешно добавлена.".format(s=service_name)
+
+        elif mod == "delete":
+            query = """
+                    DELETE FROM services
+                    WHERE service_name='{service_name}'""".format(service_name=service_name)
+
+            text = "Служба {s} успешно удалена.".format(s=service_name)
+
+        connection.cursor().execute(query)
+        connection.commit()
+
+        return text
+
+    except Error as e:
+        return str(e)
 
 
 if __name__ == "__main__":

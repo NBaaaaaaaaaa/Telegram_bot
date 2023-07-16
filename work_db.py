@@ -1,61 +1,5 @@
 from pymysql import connect, Error, cursors
 from config_db import host, user, password, db_name
-import traceback
-
-
-# Процедура создания таблиц.
-def crate_tables(connection):
-    try:
-        create_users_query = """
-            CREATE TABLE IF NOT EXISTS `telegramBot`.`users` (
-              `user_id` INT NOT NULL AUTO_INCREMENT,
-              `user_name` VARCHAR(45) NOT NULL COMMENT 'Имя пользователя.',
-              `chat_id` INT NULL COMMENT 'id чата с ботом.',
-              PRIMARY KEY (`user_id`),
-              UNIQUE INDEX `user_name_UNIQUE` (`user_name` ASC) VISIBLE,
-              UNIQUE INDEX `chat_id_UNIQUE` (`chat_id` ASC) VISIBLE)
-            ENGINE = InnoDB;
-            """
-
-        create_services_query = """
-            CREATE TABLE IF NOT EXISTS `telegramBot`.`services` (
-              `service_id` INT NOT NULL AUTO_INCREMENT,
-              `service_name` VARCHAR(45) NOT NULL COMMENT 'Имя службы.',
-              PRIMARY KEY (`service_id`),
-              UNIQUE INDEX `service_name_UNIQUE` (`service_name` ASC) VISIBLE)
-            ENGINE = InnoDB;       
-            """
-
-        connection.cursor().execute(create_users_query)
-        connection.commit()
-        print("Таблица пользователей успешно создана.")
-
-        connection.cursor().execute(create_services_query)
-        connection.commit()
-        print("Таблица служб успешно создана.")
-
-    except Error as e:
-        print(e)
-
-
-# Процедура создания базы данных.
-def create_db():
-    try:
-        connection = connect(
-            host=host,
-            user=user,
-            password=password
-        )
-
-        create_db_query = "CREATE DATABASE {db_name}".format(db_name=db_name)
-
-        connection.cursor().execute(create_db_query)
-        print("База данных успешно создана.")
-
-        crate_tables(connection)
-
-    except Error as e:
-        print(e)
 
 
 # Функция подключения к бд.
@@ -72,12 +16,7 @@ def connect_db():
         return connection
 
     except Error as e:
-        if int(str(e)[1:5]) == 1049:
-            create_db()
-            connect_db()
-
-        else:
-            return str(e)
+        return str(e)
 
 
 # Функция возвращает наличие пользователь в бд.
@@ -89,8 +28,7 @@ def user_in_db(message):
 
     try:
         select_user_query = """
-                SELECT user_name FROM users
-                WHERE user_name = '{user_name}' OR chat_id = {chat_id}
+                CALL show_user('{user_name}', {chat_id})
                 """.format(user_name=message.from_user.username, chat_id=message.chat.id)
 
         cur = connection.cursor()
@@ -116,18 +54,12 @@ def add_delete_user(mod, username):
         text = ""
         if mod == "add":
             username = username.split("@", 1)[1]
-
-            query = """
-                INSERT IGNORE INTO users (user_name)
-                VALUES ("{username}")
-                """.format(username=username)
+            query = "CALL add_user('{user_name}')".format(user_name=username)
 
             text = "Пользователь {u} успешно добавлен.".format(u=username)
 
         elif mod == "delete":
-            query = """
-                DELETE FROM users
-                WHERE user_name='{user_name}'""".format(user_name=username)
+            query = "CALL delete_user('{user_name}')".format(user_name=username)
 
             text = "Пользователь {u} успешно удален.".format(u=username)
 
@@ -148,24 +80,25 @@ def add_chat_id_db(message):
         return {"stat": False, "comment": connection}
 
     try:
-        select_user_query = """
-            SELECT * FROM users
-            WHERE user_name = '{user_name}'""".format(user_name=message.from_user.username)
+        select_user_query = "CALL get_user_data('{user_name}')".format(user_name=message.from_user.username)
 
         cur = connection.cursor()
         cur.execute(select_user_query)
         result = cur.fetchall()
 
         if not result[0]["chat_id"]:
-            replace_tuple_query = """
-                REPLACE INTO users 
-                VALUES ({user_id}, '{user_name}', {chat_id});
-                """.format(user_id=result[0]["user_id"], user_name=result[0]["user_name"], chat_id=message.chat.id)
+            try:
+                replace_tuple_query = """
+                    CALL replace_user_data({user_id}, '{user_name}', {chat_id})
+                    """.format(user_id=result[0]["user_id"], user_name=result[0]["user_name"], chat_id=message.chat.id)
 
-            connection.cursor().execute(replace_tuple_query)
-            connection.commit()
+                connection.cursor().execute(replace_tuple_query)
+                connection.commit()
 
-            return {"stat": True, "comment": "Id чата успешно внесен в таблицу."}
+                return {"stat": True, "comment": "Id чата успешно внесен в таблицу."}
+
+            except Error as e:
+                return {"stat": False, "comment": str(e)}
 
         return {"stat": True, "comment": None}
 
@@ -181,7 +114,7 @@ def get_dict_username_id():
         return {"stat": False, "comment": connection}
 
     try:
-        select_user_query = "SELECT user_name, chat_id FROM users"
+        select_user_query = "CALL get_users_data()"
 
         cur = connection.cursor()
         cur.execute(select_user_query)
@@ -205,7 +138,7 @@ def get_list_services():
         return {"stat": False, "comment": connection}
 
     try:
-        select_user_query = "SELECT service_name FROM services"
+        select_user_query = "CALL get_services_name()"
 
         cur = connection.cursor()
         cur.execute(select_user_query)
@@ -228,17 +161,12 @@ def add_delete_service(mod, service_name):
         query = ""
         text = ""
         if mod == "add":
-            query = """
-                    INSERT IGNORE INTO services (service_name)
-                    VALUES ("{service_name}")
-                    """.format(service_name=service_name)
+            query = "CALL add_service('{service_name}')".format(service_name=service_name)
 
             text = "Служба {s} успешно добавлена.".format(s=service_name)
 
         elif mod == "delete":
-            query = """
-                    DELETE FROM services
-                    WHERE service_name='{service_name}'""".format(service_name=service_name)
+            query = "CALL delete_service('{service_name}')".format(service_name=service_name)
 
             text = "Служба {s} успешно удалена.".format(s=service_name)
 
@@ -252,7 +180,6 @@ def add_delete_service(mod, service_name):
 
 
 if __name__ == "__main__":
-    connect_db()
-    your_username = "Ваше @имя_пользователя Telegram"
-    add_delete_service("add", your_username)
+    your_username = "@имя_пользователя"
+    add_delete_user("add", your_username)
 

@@ -32,13 +32,14 @@ def get_process_memory_usage(process_name):
 
 
 # Функция возвращает нагрузку службы на ЦП.
-def get_cpu_percent(pid):
+def get_cpu_load(pid):
     try:
-        p = psutil.Process(pid)
+        process = psutil.Process(pid)
+        cpu_percent = process.cpu_percent(interval=1.0)
+        num_cores = psutil.cpu_count()
+        total_cpu_load = float(cpu_percent) / num_cores
 
-        p.cpu_percent(interval=1)
-
-        return p.cpu_percent(interval=None)
+        return total_cpu_load
 
     except Exception as e:
         print("Ошибка при получении информации о нагрузки на ЦП:", str(e))
@@ -68,7 +69,7 @@ def get_data_services():
             # Добавляем в словарь данные процесса.
             dict_data_services[service.name()] = {
                 "uss": str(get_process_memory_usage(service.binpath().split("\\")[-1])) + " Мб",
-                "cpu": str(get_cpu_percent(service.pid())) + "%",
+                "cpu": str(get_cpu_load(service.pid())) + "%",
                 "status": service.status()
             }
 

@@ -3,7 +3,57 @@ import win32com
 import wmi
 import pythoncom
 import traceback
-from work_db import get_list_services
+
+
+# Функция возваращает список имен служб записанных в файле.
+def get_list_services():
+    try:
+        with open("list_services.txt", "r") as file:
+            list_services = list()
+            for service_name in file.readlines():
+                list_services.append(service_name.replace("\n", ""))
+
+            return {"status": True, "result": list_services}
+
+    except Exception as e:
+        return {"status": False, "result": traceback.format_exc()}
+
+
+# Процедура перезаписи файла со службами.
+def rewrite_services(list_services):
+    with open("list_services.txt", "w") as file:
+        for service_name in list_services:
+            file.write("{n}\n".format(n=service_name))
+
+
+# Процедура добавления/удаления имени службы в/из файл/а.
+def add_delete_service(mod, service_name):
+    # Перобразуем имя службы. Удаляем лишние пробелы справа и слева.
+    service_name = " ".join([_ for _ in service_name.split(" ") if len(_) > 0])
+
+    # Получаем список всех записанных служб.
+    result = get_list_services()
+
+    if result["status"]:
+        try:
+            list_sevices = result["result"]
+            # Добавляем имя службы.
+            if mod == "add" and service_name not in list_sevices:
+                list_sevices.append(service_name)
+            # Удаляем имя службы.
+            elif mod == "delete" and service_name in list_sevices:
+                list_sevices.remove(service_name)
+
+            # Сохраняем изменения.
+            rewrite_services(list_sevices)
+
+            return {"status": True}
+
+        except Exception as e:
+            return {"status": False, "result": traceback.format_exc()}
+
+    else:
+        return {"status": False, "result": result["result"]}
 
 
 # Функция возвращает кол-во памяти (Мб), которое освободится после остановки службы.
@@ -25,6 +75,7 @@ def get_process_memory_usage(process_name):
                 break
         except Exception as e:
             print("Ошибка при получении информации о потреблении памяти:", str(e))
+            return None
 
         return memory_usage
 
@@ -55,10 +106,11 @@ def get_data_services():
     dict_data_services = dict()
 
     list_services = list()
+
     result = get_list_services()
 
-    if result["stat"]:
-        for service_name in result["list_services"]:
+    if result["status"]:
+        for service_name in result["result"]:
             try:
                 list_services.append(psutil.win_service_get(service_name))
             except Exception as e:
@@ -73,11 +125,11 @@ def get_data_services():
                 "status": service.status()
             }
 
-        # Возвращаем словарь данных  служб.
-        return {"stat": True, "dict_services": dict_data_services}
+        # Возвращаем словарь данных служб.
+        return {"status": True, "result": dict_data_services}
 
     else:
-        return {"stat": False, "comment": result["comment"]}
+        return {"status": False, "result": result["result"]}
 
 
 # Функция запуска и остановки служб.
@@ -98,17 +150,15 @@ def on_off_services(mod, service_name=None):
                     }
 
     if service_name:
-        result = {"stat": True, "list_services": [service_name]}
+        result = {"status": True, "result": [service_name]}
     else:
         # Получение списка необходимых имен сервисов.
         result = get_list_services()
 
-    if result["stat"]:
-        list_services = result["list_services"]
-
+    if result["status"]:
+        list_services = result["result"]
         # Формируем строку для ответа.
         text = ""
-
         for service_name in list_services:
             if psutil.win_service_get(service_name).status() in dict_phrases[mod]["status"]:
                 service = c.Win32_Service(Name=service_name)
@@ -131,4 +181,5 @@ def on_off_services(mod, service_name=None):
         return text
 
     else:
-        return result["comment"]
+        return result["result"]
+

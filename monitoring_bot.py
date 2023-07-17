@@ -4,8 +4,7 @@ import time
 from bot_functions import *
 from logger import *
 from TOKEN import TOKEN
-from work_db import add_delete_user, user_in_db, add_chat_id_db, get_dict_username_id, add_delete_service
-
+from work_db import *
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -31,26 +30,6 @@ def delete_all_messages(chat_id):
 
         # Очищаем файл.
         open("all_messages/{chat_id}".format(chat_id=chat_id), "w")
-
-
-# Функция возвращает имя пользователя по id чата. Необходима только для логов.
-def get_username(chat_id):
-    result = get_dict_username_id()
-
-    if result["stat"]:
-        # Получаем словарь {"имя пользователя": "id чата", ...}.
-        dict_file = result["dict_users"]
-
-        for username in dict_file:
-            try:
-                if int(dict_file[username]) == chat_id:
-                    return username
-
-            except ValueError:
-                print("{n} не имеет id чата.".format(n=username))
-
-    else:
-        print(result["comment"])
 
 
 # Функция отправки стартового сообщения.
@@ -84,20 +63,21 @@ def send_start_message(mod, chat_id):
 
 # Функция отправки сообщений всем пользователям о перезапуске бота.
 def send_message_after_restart():
-    # Получаем словарь {"имя пользователя": "id чата", ...}.
     result = get_dict_username_id()
 
-    if result["stat"]:
-        dict_file = result["dict_file"]
+    if result["status"]:
+        # Получаем словарь {"имя пользователя": "id чата", ...}.
+        dict_file = result["result"]
+
         for username in dict_file:
             try:
                 send_start_message("restart", int(dict_file[username]))
 
-            except TypeError:
+            except ValueError:
                 print("{n} не получил сообщение о рестарте, так как не имеет id чата.".format(n=username))
 
     else:
-        print(result["comment"])
+        print(result["result"])
 
 
 # Функция начала работы с ботом.
@@ -108,28 +88,27 @@ def start(message):
 
     # Проверка доступа пользователя.
     result = user_in_db(message)
-    if result["stat"]:
+
+    if result["status"]:
+        # Записываем id сообщения.
+        writing_message_id(message)
+
         # Записываем id чата в файл.
         result = add_chat_id_db(message)
 
-        # Сработает, когда id чата у пользователя записано в бд.
-        if result["comment"]:
-            # Логирование.
-            logging("dhadhfabot", result["comment"])
+        bot.send_message(message.chat.id, result)
+        # Логирование.
+        logging("dhadhfabot", result)
 
-            bot.send_message(message.chat.id, result["comment"])
-
-        if result["stat"]:
-            # Выводим стартовове сообщение.
-            send_start_message("start", message.chat.id)
-            # Записываем id сообщения.
-            writing_message_id(message)
+        # Выводим стартовове сообщение.
+        send_start_message("start", message.chat.id)
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        # Выводим стартовове сообщение.
+        bot.send_message(message.chat.id, result["result"])
 
 
 # Функция добавления пользователя.
@@ -140,26 +119,31 @@ def add_command(message):
 
     # Проверка доступа пользователя.
     result = user_in_db(message)
-    if result["stat"]:
+
+    if result["status"]:
         try:
-            # Записываем пользователя в бд.
-            result = add_delete_user("add", message.text.split(" ", 1)[1].replace(" ", ""))
+            # Записываем id чата в файл.
+            result = add_chat_user_db(message.text.split(" ", 1)[1].replace(" ", "").split("@", 1)[1])
 
             # Логирование.
             logging("dhadhfabot", result)
 
             bot.send_message(message.chat.id, result)
-        except IndexError:
-            # Логирование.
-            logging("dhadhfabot", "Неверно ведена команда /addUser: {c}".format(c=message.text))
 
-            bot.send_message(message.chat.id, "Неверно ведена команда /addUser: {c}".format(c=message.text))
+        except IndexError:
+            result = "Неверно ведена команда /addUser: {c}".format(c=message.text)
+
+            # Логирование.
+            logging("dhadhfabot", result)
+
+            bot.send_message(message.chat.id, result)
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        # Выводим стартовове сообщение.
+        bot.send_message(message.chat, id, result["result"])
 
 
 # Функция добавления службы.
@@ -170,27 +154,37 @@ def add_command(message):
 
     # Проверка доступа пользователя.
     result = user_in_db(message)
-    if result["stat"]:
+
+    if result["status"]:
         try:
-            # Добавляем имя службы в бд.
+            # Записываем службу в файл.
             result = add_delete_service("add", message.text.split(" ", 1)[1])
 
-            # Логирование.
-            logging("dhadhfabot", result)
+            if result["status"]:
+                text = "Служба {service} успешно добавлена.".format(service=message.text.split(" ", 1)[1])
 
-            bot.send_message(message.chat.id, result)
+            else:
+                text = result["result"]
+
+            # Логирование.
+            logging("dhadhfabot", text)
+
+            bot.send_message(message.chat.id, text)
 
         except IndexError:
-            # Логирование.
-            logging("dhadhfabot", "Неверно ведена команда /addService: {c}".format(c=message.text))
+            text = "Неверно ведена команда /addService: {c}".format(c=message.text)
 
-            bot.send_message(message.chat.id, "Неверно ведена команда /addService: {c}".format(c=message.text))
+            # Логирование.
+            logging("dhadhfabot", text)
+
+            bot.send_message(message.chat.id, text)
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        # Выводим стартовове сообщение.
+        bot.send_message(message.chat, id, result["result"])
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
@@ -202,11 +196,11 @@ def get_status():
 # Функция вывода данных служб в формате кнопок.
 def output_button_service_stat(message):
     result = get_data_services()
+    # Логирование.
+    logging("dhadhfabot", "Мониторинг:")
 
-    if result["stat"]:
-        dict_services = result["dict_services"]
-        # Логирование.
-        logging("dhadhfabot", "Мониторинг:")
+    if result["status"]:
+        dict_services = result["result"]
 
         markup = types.InlineKeyboardMarkup(row_width=1)
         # Заполяем поле кнопками.
@@ -224,17 +218,17 @@ def output_button_service_stat(message):
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        bot.send_message(message.chat.id, result["result"])
 
 
 # Функция вывода имен служб в формате кнопок.
 def output_button_service(message):
     result = get_list_services()
 
-    if result["stat"]:
-        list_services = result["list_services"]
+    if result["status"]:
+        list_services = result["result"]
 
         # Логирование.
         logging("dhadhfabot", "Службы:")
@@ -253,21 +247,20 @@ def output_button_service(message):
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        bot.send_message(message.chat.id, result["result"])
 
 
 # Функция вывода пользователей в формате кнопок.
 def output_button_users(message):
     result = get_dict_username_id()
 
-    if result["stat"]:
-        # Получаем словарь пользователей.
-        dict_users = result["dict_users"]
+    # Логирование.
+    logging("dhadhfabot", "Пользователи:")
 
-        # Логирование.
-        logging("dhadhfabot", "Пользователи:")
+    if result["status"]:
+        dict_users = result["result"]
 
         markup = types.InlineKeyboardMarkup(row_width=1)
         # Заполяем поле кнопками.
@@ -281,9 +274,9 @@ def output_button_users(message):
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        bot.send_message("dhadhfabot", result["result"])
 
 
 # Функция вывода логов в формате кнопок.
@@ -331,7 +324,7 @@ def callback_query(call):
         # Проверка доступа пользователя.
         result = user_in_db(call.message)
 
-        if result["stat"]:
+        if result["status"]:
             # Записываем id сообщения.
             writing_message_id(call.message)
 
@@ -339,13 +332,13 @@ def callback_query(call):
             result_se = get_list_services()
             result_da = get_data_services()
 
-            if result_us["stat"] and result_se["stat"] and result_da["stat"]:
+            if result_us["status"] and result_se["status"] and result_da["status"]:
                 # Получаем словарь служб с их данными.
-                dict_services = result_da["dict_services"]
+                dict_services = result_da["result"]
                 # Получаем словарь пользователей.
-                list_users = list(result_us["dict_users"])
+                list_users = list(result_us["result"])
                 # Получаем список имен служб.
-                list_services = result_se["list_services"]
+                list_services = result_se["result"]
 
                 # Обработка запроса по нажатию на inline кнопки, содержащую данные службы.
                 if call.data in dict_services:
@@ -439,10 +432,16 @@ def callback_query(call):
                 elif call.data.split(":", 2)[0] == "Delete_service":
                     result = add_delete_service("delete", call.data.split(":", 2)[1])
 
-                    # Логирование.
-                    logging("dhadhfabot", result)
+                    if result["status"]:
+                        text = "Служба {service} успешно удалена.".format(service=call.data.split(":", 2)[1])
 
-                    bot.send_message(call.message.chat.id, result)
+                    else:
+                        text = result["result"]
+
+                    # Логирование.
+                    logging("dhadhfabot", text)
+
+                    bot.send_message(call.message.chat.id, text)
 
                     # Удаляем 2 пердыдущих сообщения.
                     bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
@@ -475,7 +474,7 @@ def callback_query(call):
 
                 # Обработка запроса по удалению пользователя.
                 elif call.data.split(":", 2)[0] == "Delete":
-                    result = add_delete_user("delete", call.data.split(":", 2)[1])
+                    result = delete_user(call.data.split(":", 2)[1])
 
                     # Удаляем 2 пердыдущих сообщения.
                     bot.delete_message(call.message.chat.id, call.data.split(":", 2)[2])
@@ -549,42 +548,45 @@ def callback_query(call):
                     bot.stop_polling()
 
             else:
-                if not result_se["stat"]:
+                if not result_se["status"]:
                     # Логирование.
-                    logging("dhadhfabot", result_se["comment"])
+                    logging("dhadhfabot", result_se["result"])
 
-                    bot.send_message(call.message.chat.id, result_se["comment"])
+                    bot.send_message(call.message.chat.id, result_se["result"])
 
-                elif not result_us:
+                elif not result_us["status"]:
                     # Логирование.
-                    logging("dhadhfabot", result_us["comment"])
+                    logging("dhadhfabot", result_us["result"])
 
-                    bot.send_message(call.message.chat.id, result_us["comment"])
+                    bot.send_message(call.message.chat.id, result_us["result"])
 
                 else:
                     # Логирование.
-                    logging("dhadhfabot", result_da["comment"])
+                    logging("dhadhfabot", result_da["result"])
 
-                    bot.send_message(call.message.chat.id, result_da["comment"])
+                    bot.send_message(call.message.chat.id, result_da["result"])
 
         else:
             # Логирование.
-            logging("dhadhfabot", result["comment"])
+            logging("dhadhfabot", result["result"])
 
-            bot.send_message(call.message.chat.id, result["comment"])
+            # Выводим стартовове сообщение.
+            bot.send_message(call.message.chat, id, result["result"])
 
 
 # Функция, обслуживающая отправленные сообщения.
 @bot.message_handler(content_types=["text"])
 def buttons_events(message):
+    # Логирование.
+    logging(message.from_user.username, message.text)
+
     # Проверка доступа пользователя.
     result = user_in_db(message)
 
-    if result["stat"]:
+    if result["status"]:
+
         # Записываем id сообщения.
         writing_message_id(message)
-        # Логирование.
-        logging(message.from_user.username, message.text)
 
         # Обработка запроса "📊 Мониторинг".
         if message.text == "📊 Мониторинг":
@@ -677,9 +679,10 @@ def buttons_events(message):
 
     else:
         # Логирование.
-        logging("dhadhfabot", result["comment"])
+        logging("dhadhfabot", result["result"])
 
-        bot.send_message(message.chat.id, result["comment"])
+        # Выводим стартовове сообщение.
+        bot.send_message(message.chat, id, result["result"])
 
 
 # Процедура запуска бота.
@@ -687,9 +690,6 @@ def start_bot():
     # Запускаем процесс опроса Telegram серверов на предмет новых сообщений.
     bot.polling(none_stop=True)
 
-
-if __name__ == "__main__":
-    start_bot()
 
 # Переменная. Необходима для перезапуска бота.
 status = ""

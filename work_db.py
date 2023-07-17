@@ -1,185 +1,165 @@
-from pymysql import connect, Error, cursors
-from config_db import host, user, password, db_name
+import os
+import traceback
 
 
-# Функция подключения к бд.
-def connect_db():
-    try:
-        connection = connect(
-            host=host,
-            user=user,
-            password=password,
-            database=db_name,
-            cursorclass=cursors.DictCursor
-        )
+# Функция возвращает список ["имя пользователя", "id чата"].
+def split_username_id(string):
+    list_string = list(string)
 
-        return connection
+    for ind in range(len(list_string) - 1, -1, -1):
+        if list_string[ind] == ";":
+            username = "".join(list_string[:ind])
+            chat_id = "".join(list_string[ind + 1:])
 
-    except Error as e:
-        return str(e)
-
-
-# Функция возвращает наличие пользователь в бд.
-def user_in_db(message):
-    connection = connect_db()
-
-    if type(connection) == str:
-        return {"stat": False, "comment": connection}
-
-    try:
-        select_user_query = """
-                CALL show_user('{user_name}', {chat_id})
-                """.format(user_name=message.from_user.username, chat_id=message.chat.id)
-
-        cur = connection.cursor()
-        cur.execute(select_user_query)
-        if cur.fetchall():
-            return {"stat": True}
-
-        return {"stat": False, "comment": "У вас нет прав доступа."}
-
-    except Error as e:
-        return {"stat": False, "comment": str(e)}
-
-
-# Функция добавления/удаления пользователя в/из бд.
-def add_delete_user(mod, username):
-    connection = connect_db()
-
-    if type(connection) == str:
-        return connection
-
-    try:
-        query = ""
-        text = ""
-        if mod == "add":
-            username = username.split("@", 1)[1]
-            query = "CALL add_user('{user_name}')".format(user_name=username)
-
-            text = "Пользователь {u} успешно добавлен.".format(u=username)
-
-        elif mod == "delete":
-            query = "CALL delete_user('{user_name}')".format(user_name=username)
-
-            text = "Пользователь {u} успешно удален.".format(u=username)
-
-        connection.cursor().execute(query)
-        connection.commit()
-
-        return text
-
-    except Error as e:
-        return str(e)
-
-
-# Функция добавления id чата в бд.
-def add_chat_id_db(message):
-    connection = connect_db()
-
-    if type(connection) == str:
-        return {"stat": False, "comment": connection}
-
-    try:
-        select_user_query = "CALL get_user_data('{user_name}')".format(user_name=message.from_user.username)
-
-        cur = connection.cursor()
-        cur.execute(select_user_query)
-        result = cur.fetchall()
-
-        if not result[0]["chat_id"]:
-            try:
-                replace_tuple_query = """
-                    CALL replace_user_data({user_id}, '{user_name}', {chat_id})
-                    """.format(user_id=result[0]["user_id"], user_name=result[0]["user_name"], chat_id=message.chat.id)
-
-                connection.cursor().execute(replace_tuple_query)
-                connection.commit()
-
-                return {"stat": True, "comment": "Id чата успешно внесен в таблицу."}
-
-            except Error as e:
-                return {"stat": False, "comment": str(e)}
-
-        return {"stat": True, "comment": None}
-
-    except Error as e:
-        return {"stat": False, "comment": str(e)}
+            return [username, chat_id]
 
 
 # Функция возвращает словарь {"имя пользователя": "id чата", ...}.
 def get_dict_username_id():
-    connection = connect_db()
-
-    if type(connection) == str:
-        return {"stat": False, "comment": connection}
-
     try:
-        select_user_query = "CALL get_users_data()"
+        with open("users/users_db.txt", "r") as file:
+            return {"status": True,
+                    "result": dict(split_username_id(string.replace("\n", "")) for string in file.readlines())}
 
-        cur = connection.cursor()
-        cur.execute(select_user_query)
-        result = cur.fetchall()
-
-        send_dict = {}
-        for user_data in result:
-            send_dict[user_data["user_name"]] = user_data["chat_id"]
-
-        return {"stat": True, "dict_users": send_dict}
-
-    except Error as e:
-        return {"stat": False, "comment": str(e)}
+    except Exception as e:
+        return {"status": False, "result": traceback.format_exc()}
 
 
-# Функция возваращает список имен служб в бд.
-def get_list_services():
-    connection = connect_db()
+# Процедура перезаписи файла с пользователями.
+def rewrite_db_file(dict_file):
+    with open("users/users_db.txt", "w") as file:
+        for username in sorted(dict_file.keys()):
+            file.write("{n};{i}\n".format(n=username, i=dict_file[username]))
 
-    if type(connection) == str:
-        return {"stat": False, "comment": connection}
 
+# Процедура добавления имени пользователя в файл.
+def add_chat_user_db(username):
     try:
-        select_user_query = "CALL get_services_name()"
+        result = get_dict_username_id()
 
-        cur = connection.cursor()
-        cur.execute(select_user_query)
-        result = cur.fetchall()
+        if result["status"]:
+            # Получаем словарь {"имя пользователя": "id чата", ...}.
+            dict_file = result["result"]
 
-        return {"stat": True, "list_services": list(service["service_name"] for service in result)}
+            # Запись в файл.
+            if username not in dict_file:
+                dict_file[username] = ""
+                rewrite_db_file(dict_file)
 
-    except Error as e:
-        return {"stat": False, "comment": str(e)}
+                return "Пользователь {username} успешно добавлен.".format(username=username)
+
+            return "Пользователь {username} уже есть.".format(username=username)
+
+        else:
+            return "Пользователь {username} не добавлен.\n{p}".format(username=username, p=result["result"])
+
+    except Exception as e:
+        return "Пользователь {username} не добавлен.\n{p}".format(username=username, p=traceback.format_exc())
 
 
-# Функция добавления/удаления имени службы в/из файл/а.
-def add_delete_service(mod, service_name):
-    connection = connect_db()
-
-    if type(connection) == str:
-        return connection
-
+# Процедура добавления id чата в файл.
+def add_chat_id_db(message):
     try:
-        query = ""
-        text = ""
-        if mod == "add":
-            query = "CALL add_service('{service_name}')".format(service_name=service_name)
+        result = get_dict_username_id()
 
-            text = "Служба {s} успешно добавлена.".format(s=service_name)
+        if result["status"]:
+            # Получаем словарь {"имя пользователя": "id чата", ...}.
+            dict_file = result["result"]
 
-        elif mod == "delete":
-            query = "CALL delete_service('{service_name}')".format(service_name=service_name)
+            # Добавляем id чата в словарь, если поле пустое.
+            if message.from_user.username in dict_file:
+                if dict_file[message.from_user.username] == "":
+                    dict_file[message.from_user.username] = message.chat.id
+                    # Создаем файл под запись id сообщений.
+                    open("all_messages/{chat_id}".format(chat_id=message.chat.id), "w").close()
+                    # Перезаписываем бд.
+                    rewrite_db_file(dict_file)
 
-            text = "Служба {s} успешно удалена.".format(s=service_name)
+                    return "Id чата успешно записан."
 
-        connection.cursor().execute(query)
-        connection.commit()
+            return "Id чата уже записан."
 
-        return text
+        else:
+            return "Id чата не записан.\n{p}".format(p=result["result"])
 
-    except Error as e:
-        return str(e)
+    except Exception as e:
+        return "Id чата не записан.\n{p}".format(p=traceback.format_exc())
 
 
+# Процедура удаления пользователя.
+def delete_user(username):
+    try:
+        result = get_dict_username_id()
+
+        if result["status"]:
+            # Получаем словарь {"имя пользователя": "id чата", ...}.
+            dict_file = result["result"]
+
+            if username in dict_file:
+                if dict_file[username] != "":
+                    chat_id = int(dict_file[username])
+                    # Удаляем файл предназначенный для id сообщений.
+                    os.remove("all_messages/{chat_id}".format(chat_id=chat_id))
+                # Удаляем пользователя из словаря.
+                del dict_file[username]
+
+            # Сохраняем изменения словаря.
+            rewrite_db_file(dict_file)
+
+            return "Пользователь {username} успешно удален.".format(username=username)
+
+        else:
+            return "Пользователь {username} не удален.\n{p}".format(username=username, p=result["result"])
+
+    except Exception as e:
+        return "Пользователь {username} не удален.\n{p}".format(username=username, p=traceback.format_exc())
+
+
+# Функция возвращает имя пользователя по id чата. Необходима только для логов.
+def get_username(chat_id):
+    result = get_dict_username_id()
+
+    if result["status"]:
+        # Получаем словарь {"имя пользователя": "id чата", ...}.
+        dict_file = result["result"]
+
+        for username in dict_file:
+            try:
+                if int(dict_file[username]) == chat_id:
+                    return username
+            except ValueError:
+                print("{n} не имеет id чата.".format(n=username))
+
+
+# Функция возвращает есть ли пользователь в файле или нет.
+def user_in_db(message):
+    result = get_dict_username_id()
+
+    if result["status"]:
+        # Получаем словарь {"имя пользователя": "id чата", ...}.
+        dict_file = result["result"]
+
+        if str(message.chat.id) in dict_file.values() or message.from_user.username in dict_file:
+            return {"status": True}
+
+    return {"status": False, "result": result["result"]}
+
+
+# Процедура создания и записи польователя в файл.
+def create_users_db(username):
+    if not os.path.isdir("users"):
+        os.mkdir("users")
+
+    with open("users/users_db.txt", "w") as file:
+        file.write("{username};".format(username=username.split("@")[1]))
+
+
+# Процедура создаия файла для служб.
+def create_services_db():
+    open("list_services.txt", "w").close()
+
+
+# Запустить, если проект только был скачан.
 if __name__ == "__main__":
-    your_username = "@имя_пользователя"
-    add_delete_user("add", your_username)
-
+    create_users_db("@имя_пользователя")
+    create_services_db()

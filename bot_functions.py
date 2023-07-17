@@ -33,15 +33,21 @@ def get_process_memory_usage(process_name):
 
 # Функция возвращает нагрузку службы на ЦП.
 def get_cpu_percent(pid):
-    p = psutil.Process(pid)
+    try:
+        p = psutil.Process(pid)
 
-    p.cpu_percent(interval=1)
+        p.cpu_percent(interval=1)
 
-    return p.cpu_percent(interval=None)
+        return p.cpu_percent(interval=None)
+
+    except Exception as e:
+        print("Ошибка при получении информации о нагрузки на ЦП:", str(e))
+        return None
 
 
 # Функция возвращает словарь {"имя службы": {                          данных служб.
 #                               "uss": "физическая память",
+#                               "cpu": ""
 #                               "status": "статус службы", ...}
 def get_data_services():
     # Создание пустого словаря.

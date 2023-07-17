@@ -1,5 +1,5 @@
-host = ""
-user = ""
+host = "localhost"
+user = "root"
 password = ""
 db_name = "telegrambot"
 

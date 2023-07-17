@@ -212,7 +212,7 @@ def output_button_service_stat(message):
         # Заполяем поле кнопками.
         for service in sorted(dict_services.keys()):
             text = "; ".join(
-                [service, dict_services[service]["uss"],
+                [service, dict_services[service]["uss"], dict_services[service]["cpu"],
                  dict_services[service]["status"]])
 
             markup.add(types.InlineKeyboardButton(text, callback_data=service))

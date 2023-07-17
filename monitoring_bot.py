@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 import time
 from bot_functions import *
-from logger import logging
+from logger import *
 from TOKEN import TOKEN
 from work_db import add_delete_user, user_in_db, add_chat_id_db, get_dict_username_id, add_delete_service
 
@@ -286,6 +286,44 @@ def output_button_users(message):
         bot.send_message(message.chat.id, result["comment"])
 
 
+# Функция вывода логов в формате кнопок.
+def output_button_logs(message, path=None):
+    # В переменной path содержится путь с id сообщений, что потом необходимо будет удалить.
+    copy_path = path
+
+    text = ""
+    if path:
+        # Отделяем путь и id сообщений.
+        path, mes_id = path.split("?", 1)
+        text = "Содержимое папки '{path}'".format(path=path)
+
+    else:
+        text = "Логи:"
+
+    # Получаем список содержимого в папке.
+    list_contents = get_directory_data(path)
+
+    # Логирование.
+    logging("dhadhfabot", text)
+
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    # Заполяем поле кнопками.
+    for content in sorted(list_contents):
+        if path:
+            path = copy_path
+
+        markup.add(types.InlineKeyboardButton(content, callback_data="log:{content}:{path}".format(content=content,
+                                                                                                   path=path)))
+
+        # Логирование.
+        logging("dhadhfabot", content)
+
+    # Добавление кнопки для возврата назад.
+    markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
+
+    bot.send_message(message.chat.id, text, reply_markup=markup)
+
+
 # Функция обработки нажажатия кнопок со встроенной клавиатуры.
 @bot.callback_query_handler(func=lambda message: True)
 def callback_query(call):
@@ -323,8 +361,8 @@ def callback_query(call):
 
                         # Добавление кнопки для остановки службы.
                         markup.add(types.InlineKeyboardButton("🔴 Остановить",
-                                                              callback_data="Stop_service:{name}:{mes_id}".
-                                                              format(name=service_name, mes_id=call.message.message_id)))
+                                                              callback_data="Stop_service:{name}:{mes_id}".format(
+                                                                  name=service_name, mes_id=call.message.message_id)))
 
                     # Запуск службы.
                     else:
@@ -332,8 +370,8 @@ def callback_query(call):
 
                         # Добавление кнопки для запуска службы.
                         markup.add(types.InlineKeyboardButton("🟢 Запустить",
-                                                              callback_data="Start_service:{name}:{mes_id}".
-                                                              format(name=service_name, mes_id=call.message.message_id)))
+                                                              callback_data="Start_service:{name}:{mes_id}".format(
+                                                                  name=service_name, mes_id=call.message.message_id)))
 
                     # Добавление кнопки для возврата назад.
                     markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="Back"))
@@ -451,6 +489,34 @@ def callback_query(call):
 
                     # Вывод сообщения с кнопками.
                     output_button_users(call.message)
+
+                # Обработка запроса по нажатию на inline кнопки, содержащую контент логов.
+                elif call.data.split(":", 1)[0] == "log":
+                    content = call.data.split(":")[1]
+
+                    path = call.data.split(":")[2]
+                    if path != "None":
+                        path = "{path}/{content}?{mes_id}".format(path=path.split("?", 1)[0],
+                                                                  content=content,
+                                                                  mes_id=path.split("?", 1)[1])
+
+                    else:
+                        path = content
+
+                    path += "?{mes_id}".format(mes_id=call.message.message_id)
+
+                    if ".txt" in content:
+                        path, str_mes_id = path.split("?", 1)
+                        # Отправляем файл.
+                        bot.send_document(call.message.chat.id, open("logs/" + path, 'rb'))
+
+                        # Удаляем предыдущие сообщения.
+                        for mes_id in str_mes_id.split("?"):
+                            bot.delete_message(call.message.chat.id, mes_id)
+
+                    else:
+                        # Выводим содержимое директории.
+                        output_button_logs(call.message, path)
 
                 # Обработка запроса вернуться назад.
                 elif call.data == "Back":
@@ -570,6 +636,7 @@ def buttons_events(message):
                 types.KeyboardButton("📖 Cписок пользователей"),
                 types.KeyboardButton("🟢 Добавить службу"),
                 types.KeyboardButton("📖 Cписок служб"),
+                types.KeyboardButton("🧾 Логи"),
                 types.KeyboardButton("🔙 Назад")
             )
 
@@ -600,7 +667,11 @@ def buttons_events(message):
 
             bot.send_message(message.chat.id, "Используй команду:\n/addService *имя_службы*", parse_mode="Markdown")
 
-            # Обработка запроса "🔙 Назад".
+        # Обработка запроса "🧾 Логи".
+        elif message.text == "🧾 Логи":
+            output_button_logs(message)
+
+        # Обработка запроса "🔙 Назад".
         elif message.text == "🔙 Назад":
             send_start_message("after_admin", message.chat.id)
 

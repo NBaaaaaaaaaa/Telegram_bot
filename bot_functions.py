@@ -37,7 +37,7 @@ def get_cpu_load(pid):
         process = psutil.Process(pid)
         cpu_percent = process.cpu_percent(interval=1.0)
         num_cores = psutil.cpu_count()
-        total_cpu_load = float(cpu_percent) / num_cores
+        total_cpu_load = round(float(cpu_percent) / num_cores, 2)
 
         return total_cpu_load
 

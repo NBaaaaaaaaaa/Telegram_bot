@@ -84,16 +84,20 @@ def get_process_memory_usage(process_name):
 
 # Функция возвращает нагрузку службы на ЦП.
 def get_cpu_load(pid):
-    try:
-        process = psutil.Process(pid)
-        cpu_percent = process.cpu_percent(interval=1.0)
-        num_cores = psutil.cpu_count()
-        total_cpu_load = round(float(cpu_percent) / num_cores, 2)
+    if pid:
+        try:
+            process = psutil.Process(pid)
+            cpu_percent = process.cpu_percent(interval=1.0)
+            num_cores = psutil.cpu_count()
+            total_cpu_load = round(float(cpu_percent) / num_cores, 2)
 
-        return total_cpu_load
+            return total_cpu_load
 
-    except Exception as e:
-        print("Ошибка при получении информации о нагрузки на ЦП:", str(e))
+        except Exception as e:
+            print("Ошибка при получении информации о нагрузки на ЦП:", str(e))
+            return None
+
+    else:
         return None
 
 
@@ -102,6 +106,9 @@ def get_cpu_load(pid):
 #                               "cpu": ""
 #                               "status": "статус службы", ...}
 def get_data_services():
+    pythoncom.CoInitialize()
+    c = wmi.WMI()
+
     # Создание пустого словаря.
     dict_data_services = dict()
 
@@ -112,17 +119,17 @@ def get_data_services():
     if result["status"]:
         for service_name in result["result"]:
             try:
-                list_services.append(psutil.win_service_get(service_name))
+                list_services.append(c.Win32_Service(Name=service_name)[0])
             except Exception as e:
                 print(e)
 
         # Перебираем все службы.
         for service in list_services:
             # Добавляем в словарь данные процесса.
-            dict_data_services[service.name()] = {
-                "uss": str(get_process_memory_usage(service.binpath().split("\\")[-1])) + " Мб",
-                "cpu": str(get_cpu_load(service.pid())) + "%",
-                "status": service.status()
+            dict_data_services[service.Name] = {
+                "uss": str(get_process_memory_usage(service.PathName.split("\\")[-1])) + " Мб",
+                "cpu": str(get_cpu_load(service.ProcessId)) + "%",
+                "status": service.State
             }
 
         # Возвращаем словарь данных служб.
@@ -138,12 +145,12 @@ def on_off_services(mod, service_name=None):
     c = wmi.WMI()
 
     dict_phrases = {"off":
-                        {"status": ["paused", "running"],
+                        {"status": ["Paused", "Running"],
                          "error_text": "Служба {name} не остановлена. Ошибка: {error}.\n",
                          "success_text": "Служба {name} успешно остановлена.\n",
                          "text": "Службы уже остановлены."},
                     "on":
-                        {"status": ["stopped"],
+                        {"status": ["Stopped"],
                          "error_text": "Служба {name} не запущена. Ошибка: {error}.\n",
                          "success_text": "Служба {name} успешно запущена.\n",
                          "text": "Службы уже запущены."}
@@ -160,7 +167,7 @@ def on_off_services(mod, service_name=None):
         # Формируем строку для ответа.
         text = ""
         for service_name in list_services:
-            if psutil.win_service_get(service_name).status() in dict_phrases[mod]["status"]:
+            if c.Win32_Service(Name=service_name)[0].State in dict_phrases[mod]["status"]:
                 service = c.Win32_Service(Name=service_name)
 
                 try:

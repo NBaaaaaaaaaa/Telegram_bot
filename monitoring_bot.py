@@ -22,7 +22,7 @@ def delete_all_messages(chat_id):
         list_messages_id = list(map(int, file.read().split(";")[:-1]))
         min_id, max_id = min(list_messages_id), max(list_messages_id)
 
-        for message_id in range(min_id - 10, max_id + 3):
+        for message_id in range(min_id - 15, max_id + 15):
             try:
                 bot.delete_message(chat_id, message_id)
             except Exception as e:
@@ -90,6 +90,10 @@ def start(message):
     result = user_in_db(message)
 
     if result["status"]:
+        # Создаем файл для записи id сообщений.
+        if not os.path.exists("all_messages/{chat_id}".format(chat_id=message.chat.id)):
+            open("all_messages/{chat_id}".format(chat_id=message.chat.id), "w").close()
+
         # Записываем id сообщения.
         writing_message_id(message)
 
@@ -349,7 +353,7 @@ def callback_query(call):
                     # Формируем строку для ответа.
                     text = ""
                     # Остановка службы.
-                    if service_status != "stopped":
+                    if service_status != "Stopped":
                         text = "Остановить сервис {name}?".format(name=service_name)
 
                         # Добавление кнопки для остановки службы.
@@ -387,6 +391,9 @@ def callback_query(call):
                     logging(get_username(call.message.chat.id), "Остановить")
                     logging("dhadhfabot", result.replace("\n", " "))
 
+                    # Пауза, чтобы служба успела запуститься.
+                    time.sleep(3)
+
                     bot.send_message(call.message.chat.id, result)
                     output_button_service_stat(call.message)
 
@@ -402,9 +409,10 @@ def callback_query(call):
                     logging(get_username(call.message.chat.id), "Запустить")
                     logging("dhadhfabot", result.replace("\n", " "))
 
-                    bot.send_message(call.message.chat.id, result)
                     # Пауза, чтобы служба успела запуститься.
-                    time.sleep(1)
+                    time.sleep(3)
+
+                    bot.send_message(call.message.chat.id, result)
                     output_button_service_stat(call.message)
 
                 # Обработка запроса по нажатию на inline кнопки, содержащую имя службы.

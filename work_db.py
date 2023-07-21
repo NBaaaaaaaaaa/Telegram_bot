@@ -163,3 +163,4 @@ def create_services_db():
 if __name__ == "__main__":
     create_users_db("@имя_пользователя")
     create_services_db()
+    os.mkdir("all_messages")

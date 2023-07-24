@@ -57,27 +57,17 @@ def add_delete_service(mod, service_name):
 
 
 # Функция возвращает кол-во памяти (Мб), которое освободится после остановки службы.
-def get_process_memory_usage(process_name):
-    pythoncom.CoInitialize()
-    wmi = win32com.client.GetObject("winmgmts:")
-    process_list = wmi.ExecQuery("SELECT * FROM Win32_Process WHERE Name='{0}'".format(process_name))
-
-    for process in process_list:
-        process_id = process.Properties_('ProcessId').Value
-        memory_usage = 0
-
+def get_process_memory_usage(pid):
+    if pid:
         try:
-            memory_stats = wmi.ExecQuery(
-                "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess='{0}'".format(process_id))
-            for stat in memory_stats:
-                memory_usage = round(int(stat.WorkingSetPrivate) / 1024 / 1024, 2)
+            process = psutil.Process(pid)
+            rss_bytes = process.memory_info().rss
+            rss_mb = rss_bytes / (1024 * 1024)
+            return round(rss_mb, 2)
 
-                break
         except Exception as e:
             print("Ошибка при получении информации о потреблении памяти:", str(e))
             return None
-
-        return memory_usage
 
     return None
 
@@ -127,7 +117,7 @@ def get_data_services():
         for service in list_services:
             # Добавляем в словарь данные процесса.
             dict_data_services[service.Name] = {
-                "uss": str(get_process_memory_usage(service.PathName.split("\\")[-1])) + " Мб",
+                "uss": str(get_process_memory_usage(service.ProcessId)) + " Мб",
                 "cpu": str(get_cpu_load(service.ProcessId)) + "%",
                 "status": service.State
             }

@@ -4,7 +4,7 @@ from datetime import datetime
 
 # Процедура логирования.
 def logging(username, text):
-    log_file = "{file}-{num}.txt"
+    log_file = "{file}.{num}.txt"
     # Получение текущей даты.
     current_datetime = datetime.now()
     path = "logs/{y}/{m}/{d}/".format(y=current_datetime.year, m=current_datetime.month, d=current_datetime.day)

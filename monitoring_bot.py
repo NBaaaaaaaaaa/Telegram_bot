@@ -90,7 +90,6 @@ def start(message):
     result = user_in_db(message)
 
     if result["status"]:
-        print(message.from_user)
         # Создаем файл для записи id сообщений.
         if not os.path.exists("all_messages/{chat_id}".format(chat_id=message.chat.id)):
             open("all_messages/{chat_id}".format(chat_id=message.chat.id), "w").close()

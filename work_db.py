@@ -142,6 +142,9 @@ def user_in_db(message):
         if str(message.chat.id) in dict_file.values() or message.from_user.username in dict_file:
             return {"status": True}
 
+        else:
+            return {"status": False, "result": "NoUser"}
+
     return {"status": False, "result": result["result"]}
 
 
@@ -161,6 +164,6 @@ def create_services_db():
 
 # Запустить, если проект только был скачан.
 if __name__ == "__main__":
-    create_users_db("@имя_пользователя")
+    create_users_db("@JluLLIauHuK")
     create_services_db()
     os.mkdir("all_messages")

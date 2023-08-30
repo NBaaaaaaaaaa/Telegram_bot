@@ -90,6 +90,7 @@ def start(message):
     result = user_in_db(message)
 
     if result["status"]:
+        print(message.from_user)
         # Создаем файл для записи id сообщений.
         if not os.path.exists("all_messages/{chat_id}".format(chat_id=message.chat.id)):
             open("all_messages/{chat_id}".format(chat_id=message.chat.id), "w").close()
@@ -108,11 +109,12 @@ def start(message):
         send_start_message("start", message.chat.id)
 
     else:
-        # Логирование.
-        logging("dhadhfabot", result["result"])
+        if result["result"] != "NoUser":
+            # Логирование.
+            logging("dhadhfabot", result["result"])
 
-        # Выводим стартовове сообщение.
-        bot.send_message(message.chat.id, result["result"])
+            # Выводим стартовове сообщение.
+            bot.send_message(message.chat.id, result["result"])
 
 
 # Функция добавления пользователя.
@@ -143,11 +145,12 @@ def add_command(message):
             bot.send_message(message.chat.id, result)
 
     else:
-        # Логирование.
-        logging("dhadhfabot", result["result"])
+        if result["result"] != "NoUser":
+            # Логирование.
+            logging("dhadhfabot", result["result"])
 
-        # Выводим стартовове сообщение.
-        bot.send_message(message.chat, id, result["result"])
+            # Выводим стартовове сообщение.
+            bot.send_message(message.chat, id, result["result"])
 
 
 # Функция добавления службы.
@@ -184,11 +187,12 @@ def add_command(message):
             bot.send_message(message.chat.id, text)
 
     else:
-        # Логирование.
-        logging("dhadhfabot", result["result"])
+        if result["result"] != "NoUser":
+            # Логирование.
+            logging("dhadhfabot", result["result"])
 
-        # Выводим стартовове сообщение.
-        bot.send_message(message.chat, id, result["result"])
+            # Выводим стартовове сообщение.
+            bot.send_message(message.chat, id, result["result"])
 
 
 # Функция получения статуса работы бота. Необходимо для перезапуска бота.
@@ -686,11 +690,12 @@ def buttons_events(message):
             send_start_message("after_admin", message.chat.id)
 
     else:
-        # Логирование.
-        logging("dhadhfabot", result["result"])
+        if result["result"] != "NoUser":
+            # Логирование.
+            logging("dhadhfabot", result["result"])
 
-        # Выводим стартовове сообщение.
-        bot.send_message(message.chat, id, result["result"])
+            # Выводим стартовове сообщение.
+            bot.send_message(message.chat, id, result["result"])
 
 
 # Процедура запуска бота.
